@@ -196,9 +196,9 @@ The file is read by `ConfigReader.Init` at mod startup. Every enabled mod folder
 | Field | Type | Default | Purpose |
 |---|---|---|---|
 | `bodyBuildLimit` | integer ≥ 0 | unlimited | Maximum number of this module that can be built on a single planetary body, summed across all factions. |
-| `factionBuildLimit` | integer ≥ 0 | unlimited | Maximum number of this module a single faction can own globally. |
-| `miningBonus` | integer ≥ 0 | 0 | Mining-output boost in percentage points per instance on a body. The integer is divided by 100 at runtime, so `miningBonus: 8` adds `0.08` to the body's mining multiplier. |
-| `miningCapBonus` | integer ≥ 0 | 0 | Additional mining cap units per instance on a body. |
+| `factionBuildLimit` | integer ≥ 0 | unlimited | Maximum number of this module a single faction can build per body. |
+| `miningBonus` | integer ≥ 0 | 0 | Mining-output boost in percentage points per instance per faction. The integer is divided by 100 at runtime, so `miningBonus: 8` adds `0.08` to the body's mining multiplier. |
+| `miningCapBonus` | integer ≥ 0 | 0 | Additional mining cap units granted by the module. |
 
 All fields are optional. Absent fields are silently ignored. Wrong types (non-integer) and negative values produce a warning and are ignored.
 
