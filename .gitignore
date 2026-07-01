@@ -1,0 +1,14 @@
+# Build output (created inside src/ next to the .csproj)
+bin/
+obj/
+
+# IDE / editor
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Built binaries and asset bundles — distributed via Steam Workshop, never committed
+*.dll
+*.manifest

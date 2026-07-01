@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>BetterKinetics</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!--
+      Terra Invicta install path resolution order:
+        1. TERRA_INVICTA_PATH environment variable (any OS)
+        2. Linux default (Steam + Proton)
+        3. Windows default (native Steam)
+      The game is always the Windows build; on Linux it runs via Proton.
+      Referenced DLLs are Windows PE assemblies in both cases.
+    -->
+    <TerraInvictaPath Condition="'$(TERRA_INVICTA_PATH)' != ''">$(TERRA_INVICTA_PATH)</TerraInvictaPath>
+    <TerraInvictaPath Condition="'$(TerraInvictaPath)' == '' And '$(OS)' == 'Unix'">/mnt/steamgames/SteamLibrary/steamapps/common/Terra Invicta</TerraInvictaPath>
+    <TerraInvictaPath Condition="'$(TerraInvictaPath)' == '' And '$(OS)' == 'Windows_NT'">C:/Program Files (x86)/Steam/steamapps/common/Terra Invicta</TerraInvictaPath>
+    <ManagedPath>$(TerraInvictaPath)/TerraInvicta_Data/Managed</ManagedPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(ManagedPath)/Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(ManagedPath)/UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(ManagedPath)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>$(ManagedPath)/UnityEngine.AnimationModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>$(ManagedPath)/UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(ManagedPath)/UnityModManager/0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityModManager">
+      <HintPath>$(ManagedPath)/UnityModManager/UnityModManager.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(ManagedPath)/Newtonsoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

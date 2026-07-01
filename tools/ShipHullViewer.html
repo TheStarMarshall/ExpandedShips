@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TI Ship Hull Viewer</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: system-ui, sans-serif; background:#1a1a1e; color:#e0e0e0; padding:20px; }
+h1 { font-size:20px; font-weight:500; margin-bottom:16px; }
+h2 { font-size:15px; font-weight:500; margin:20px 0 8px; color:#aaa; text-transform:uppercase; letter-spacing:0.05em; }
+
+.controls { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; margin-bottom:12px; }
+.ctrl-group { display:flex; flex-direction:column; gap:4px; }
+.ctrl-group label { font-size:12px; color:#888; }
+input[type=file] { font-family:inherit; font-size:13px; padding:6px 10px; background:#2a2a2e; color:#e0e0e0; border:1px solid #444; border-radius:6px; max-width:260px; }
+select { font-family:inherit; font-size:13px; padding:6px 10px; background:#2a2a2e; color:#e0e0e0; border:1px solid #444; border-radius:6px; min-width:220px; cursor:pointer; }
+select:disabled { opacity:0.4; cursor:not-allowed; }
+
+.panels { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+@media(max-width:960px) { .panels { grid-template-columns:1fr; } }
+
+.panel { background:#222228; border:1px solid #333; border-radius:8px; padding:16px; overflow:hidden; }
+
+.stat-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px,1fr)); gap:6px; }
+.stat-card { padding:8px 10px; background:#2a2a2e; border-radius:6px; border:1px solid #333; }
+.stat-card .lbl { font-size:11px; color:#888; }
+.stat-card .val { font-size:14px; font-weight:500; font-family:monospace; margin-top:1px; }
+.stat-card.changed .val { color:#F0997B; }
+.stat-card.changed .lbl::after { content:" (modded)"; color:#993C1D; }
+
+.slot-table { width:100%; border-collapse:collapse; font-size:13px; font-family:monospace; }
+.slot-table th { text-align:left; padding:5px 8px; font-size:11px; color:#888; border-bottom:1px solid #444; font-weight:500; }
+.slot-table td { padding:4px 8px; border-bottom:1px solid #2a2a2e; }
+.slot-table tr:hover { background:#2a2a2e; }
+.slot-table tr.hl { background:#3a2a1e; }
+.badge { display:inline-block; padding:1px 7px; border-radius:4px; font-size:12px; }
+
+.grid-wrap { overflow-x:auto; }
+
+.counts { display:flex; gap:24px; flex-wrap:wrap; }
+.count-col .ch { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px; }
+.count-row { display:flex; align-items:center; gap:6px; font-size:13px; margin-bottom:2px; }
+.count-dot { width:10px; height:10px; border-radius:2px; display:inline-block; }
+.total { margin-top:6px; border-top:1px solid #444; padding-top:6px; font-weight:500; font-size:13px; }
+
+.empty { color:#666; font-size:14px; padding:40px; text-align:center; }
+
+/* Existing slot grid tabs (modded/vanilla within single hull view) */
+.tabs { display:flex; gap:0; margin-bottom:0; }
+.tab { padding:7px 16px; font-size:13px; font-family:inherit; cursor:pointer; background:#2a2a2e; color:#888; border:1px solid #333; border-bottom:none; border-radius:6px 6px 0 0; transition:background 0.15s, color 0.15s; }
+.tab:hover { color:#ccc; }
+.tab.active { background:#222228; color:#e0e0e0; border-color:#444; position:relative; }
+.tab.active::after { content:""; position:absolute; bottom:-1px; left:0; right:0; height:1px; background:#222228; }
+.tab-panel { border-top:1px solid #444; }
+
+.compare-table { width:100%; border-collapse:collapse; font-size:13px; }
+.compare-table th { text-align:left; padding:5px 8px; font-size:11px; color:#888; border-bottom:1px solid #444; }
+.compare-table td { padding:4px 8px; border-bottom:1px solid #2a2a2e; font-family:monospace; }
+.dpos { color:#97C459; }
+.dneg { color:#F09595; }
+
+.mat-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:4px; }
+.mat-card { padding:6px 8px; background:#2a2a2e; border-radius:4px; border:1px solid #333; }
+.mat-card .lbl { font-size:10px; color:#888; text-transform:capitalize; }
+.mat-card .val { font-size:13px; font-weight:500; font-family:monospace; }
+
+/* === Source toggle === */
+.source-toggle { display:inline-flex; border:1px solid #444; border-radius:6px; overflow:hidden; }
+.source-toggle button { font-family:inherit; font-size:12px; padding:6px 14px; background:#2a2a2e; color:#888; border:none; cursor:pointer; border-right:1px solid #444; transition:background 0.15s, color 0.15s; }
+.source-toggle button:last-child { border-right:none; }
+.source-toggle button.active { background:#3C3489; color:#CECBF6; }
+.source-toggle button:disabled { opacity:0.3; cursor:not-allowed; }
+
+/* === Top-level view tabs === */
+.view-tabs { display:flex; gap:0; margin-bottom:16px; }
+.view-tab { padding:8px 20px; font-size:13px; font-family:inherit; cursor:pointer; background:#2a2a2e; color:#888; border:1px solid #333; border-bottom:2px solid #333; transition:background 0.15s, color 0.15s; }
+.view-tab:first-child { border-radius:6px 0 0 0; }
+.view-tab:last-child { border-radius:0 6px 0 0; }
+.view-tab:hover { color:#ccc; }
+.view-tab.active { background:#222228; color:#e0e0e0; border-bottom-color:#3C3489; }
+
+/* === Comparison grid === */
+.cmp-controls { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:16px; }
+.cmp-slot { display:flex; align-items:center; gap:4px; }
+.cmp-slot select { min-width:200px; }
+.btn-sm { font-family:inherit; font-size:12px; padding:5px 12px; background:#2a2a2e; color:#aaa; border:1px solid #444; border-radius:6px; cursor:pointer; transition:background 0.15s, color 0.15s; }
+.btn-sm:hover { background:#333; color:#e0e0e0; }
+.btn-rm { padding:5px 8px; color:#F09595; border-color:#553333; }
+.btn-rm:hover { background:#3a2020; }
+
+.cmp-grid { width:100%; border-collapse:collapse; font-size:13px; }
+.cmp-grid th { padding:6px 10px; font-size:12px; color:#aaa; border-bottom:2px solid #444; text-align:center; font-weight:500; white-space:nowrap; }
+.cmp-grid th:first-child { text-align:left; min-width:140px; }
+.cmp-grid td { padding:5px 10px; border-bottom:1px solid #2a2a2e; font-family:monospace; text-align:center; font-size:13px; }
+.cmp-grid td:first-child { text-align:left; font-family:system-ui, sans-serif; color:#aaa; font-size:12px; }
+.cmp-grid tr.group-header td { font-family:system-ui, sans-serif; font-size:11px; color:#666; text-transform:uppercase; letter-spacing:0.06em; padding:12px 10px 4px; border-bottom:1px solid #333; font-weight:500; }
+.cmp-grid .src-tag { font-size:10px; padding:1px 5px; border-radius:3px; margin-left:4px; }
+.cmp-grid .src-m { background:#27500A; color:#C0DD97; }
+.cmp-grid .src-v { background:#0C447C; color:#B5D4F4; }
+.cmp-grid .derived-lbl { cursor:help; border-bottom:1px dotted #666; }
+.cmp-grid tr:hover td { background:#2a2a2e; }
+
+/* === Side-by-side layout === */
+.sbs-layout { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+@media(max-width:1100px) { .sbs-layout { grid-template-columns:1fr; } }
+.sbs-layout > div { min-width:0; overflow-x:auto; }
+
+/* === Full view layout === */
+.fullview-detail { margin-top:24px; }
+</style>
+</head>
+<body>
+
+<h1>TI Ship Hull Viewer</h1>
+
+<div class="controls">
+  <div class="ctrl-group">
+    <label>Modded JSON</label>
+    <input type="file" id="fileInput" accept=".json">
+  </div>
+  <div class="ctrl-group">
+    <label>Vanilla JSON (optional, for compare)</label>
+    <input type="file" id="vanillaInput" accept=".json">
+  </div>
+  <div class="ctrl-group">
+    <label>Source</label>
+    <div class="source-toggle" id="sourceToggle">
+      <button data-src="modded" class="active">Modded</button>
+      <button data-src="vanilla" disabled>Vanilla</button>
+      <button data-src="both" disabled>Both</button>
+    </div>
+  </div>
+  <div class="ctrl-group">
+    <label>Ship</label>
+    <select id="shipSelect" disabled><option>Load a file first</option></select>
+  </div>
+</div>
+
+<div class="view-tabs" id="viewTabs">
+  <button class="view-tab active" data-view="single">Single Hull</button>
+  <button class="view-tab" data-view="compare">Compare</button>
+  <button class="view-tab" data-view="fullview">Full View</button>
+  <button class="view-tab" data-view="sidebyside">Side-by-Side</button>
+</div>
+
+<div id="content"><div class="empty">Load a TIShipHullTemplate.json to start.</div></div>
+
+<script>
+/* ===== PRESERVED: Color, abbreviation, category maps ===== */
+var COLORS = {
+  Drive:         {bg:"#444441",fg:"#D3D1C7"},
+  PowerPlant:    {bg:"#444441",fg:"#D3D1C7"},
+  Radiator:      {bg:"#444441",fg:"#D3D1C7"},
+  Utility:       {bg:"#085041",fg:"#9FE1CB"},
+  TailArmor:     {bg:"#0C447C",fg:"#B5D4F4"},
+  LateralArmor:  {bg:"#0C447C",fg:"#B5D4F4"},
+  NoseArmor:     {bg:"#0C447C",fg:"#B5D4F4"},
+  NoseHardPoint: {bg:"#3C3489",fg:"#CECBF6"},
+  HullHardPoint: {bg:"#993C1D",fg:"#F5C4B3"},
+  Propellant:    {bg:"#27500A",fg:"#C0DD97"},
+  None:          {bg:"#2C2C2A",fg:"#B4B2A9"}
+};
+
+var ABBREV = {
+  Drive:"DRV",PowerPlant:"PWR",Radiator:"RAD",Utility:"UTL",
+  TailArmor:"TAR",LateralArmor:"LAR",NoseArmor:"NAR",
+  NoseHardPoint:"NHP",HullHardPoint:"HHP",Propellant:"PRP",None:"---"
+};
+
+var CAT = {
+  NoseHardPoint:"Nose weapons",HullHardPoint:"Hull weapons",Utility:"Utility",
+  Drive:"System",PowerPlant:"System",Radiator:"System",
+  TailArmor:"Armor",LateralArmor:"Armor",NoseArmor:"Armor",
+  Propellant:"Propellant",None:"None"
+};
+
+/* Returns shipModuleSlots with "None" entries filtered out.
+   None slots are placeholders that may lack x/y coords, which breaks grid rendering. */
+function getSlots(obj) {
+  if (!obj || !obj.shipModuleSlots) return [];
+  return obj.shipModuleSlots.filter(function(s) { return s && s.moduleSlotType !== "None"; });
+}
+
+var STATS = [
+  ["mass_tons","Mass (tons)"],
+  ["structuralIntegrity","Structural integrity"],
+  ["crew","Crew"],
+  ["noseHardpoints","Nose hardpoints"],
+  ["hullHardpoints","Hull hardpoints"],
+  ["internalModules","Internal modules"],
+  ["baseConstructionTime_days","Build time (days)"],
+  ["consTier","Construction tier"],
+  ["monthlyIncome_Money","Maintenance ($/mo)"],
+  ["missionControl","Mission control"],
+  ["maxOfficers","Max officers"],
+  ["volume","Volume"],
+  ["length_m","Length (m)"],
+  ["width_m","Width (m)"],
+  ["thrusterMultiplier","Thruster multiplier"],
+  ["alien","Alien"],
+  ["simpleHull","Simple hull"],
+  ["noShipyardBuild","No shipyard build"]
+];
+
+/* ===== Comparison grid stat definition ===== */
+var CMP_STATS = [
+  // [key, displayName, tooltip, group, isderived]
+  ["_group_core", "Core", "", "core", false],
+  ["mass_tons", "Mass (t)", "mass_tons", "core", false],
+  ["volume", "Volume (m\u00B3)", "volume", "core", false],
+  ["length_m", "Length (m)", "length_m", "core", false],
+  ["width_m", "Width (m)", "width_m", "core", false],
+  ["structuralIntegrity", "Hull HP", "structuralIntegrity", "core", false],
+  ["crew", "Crew", "crew", "core", false],
+
+  ["_group_slots_hdr", "Slots (Header)", "", "slots_hdr", false],
+  ["noseHardpoints", "Nose Wpns", "noseHardpoints", "slots_hdr", false],
+  ["hullHardpoints", "Hull Wpns", "hullHardpoints", "slots_hdr", false],
+  ["internalModules", "Int. Modules", "internalModules", "slots_hdr", false],
+
+  ["_group_slots_arr", "Slots (Array)", "", "slots_arr", false],
+  ["_wpnSlots", "Weapon Slots", "NoseHardPoint + HullHardPoint from shipModuleSlots", "slots_arr", true],
+  ["_utlSlots", "Utility Slots", "Utility count from shipModuleSlots", "slots_arr", true],
+  ["_totalSlots", "Total Slots", "shipModuleSlots.length", "slots_arr", true],
+
+  ["_group_ops", "Operations", "", "ops", false],
+  ["consTier", "Build Tier", "consTier", "ops", false],
+  ["baseConstructionTime_days", "Build Time (d)", "baseConstructionTime_days", "ops", false],
+  ["monthlyIncome_Money", "Maint. ($/mo)", "monthlyIncome_Money", "ops", false],
+  ["missionControl", "Mission Ctrl", "missionControl", "ops", false],
+  ["maxOfficers", "Max Officers", "maxOfficers", "ops", false],
+  ["thrusterMultiplier", "Thruster Mult.", "thrusterMultiplier", "ops", false],
+
+  ["_group_derived", "Derived", "", "derived", false],
+  ["_density", "Density (t/m\u00B3)", "mass_tons / volume", "derived", true],
+  ["_siPerKton", "HP/kton", "structuralIntegrity / mass_tons \u00D7 1000", "derived", true],
+  ["_crewPerKton", "Crew/kton", "crew / mass_tons \u00D7 1000", "derived", true],
+  ["_maintPerTon", "Maint/ton", "monthlyIncome_Money / mass_tons", "derived", true],
+  ["_wpnPerKton", "Wpns/kton", "(noseHardpoints + hullHardpoints) / mass_tons \u00D7 1000", "derived", true],
+  ["_utlPerKton", "Utility/kton", "utilitySlots / mass_tons \u00D7 1000", "derived", true],
+
+  ["_group_mats", "Materials", "", "mats", false],
+  ["_mat_volatiles", "Volatiles", "weightedBuildMaterials.volatiles", "mats", true],
+  ["_mat_metals", "Metals", "weightedBuildMaterials.metals", "mats", true],
+  ["_mat_nobleMetals", "Noble Metals", "weightedBuildMaterials.nobleMetals", "mats", true],
+  ["_mat_fissiles", "Fissiles", "weightedBuildMaterials.fissiles", "mats", true],
+  ["_mat_antimatter", "Antimatter", "weightedBuildMaterials.antimatter", "mats", true],
+  ["_mat_exotics", "Exotics", "weightedBuildMaterials.exotics", "mats", true]
+];
+
+/* ===== State ===== */
+var shipData = null;
+var vanillaData = null;
+var hlIdx = null;
+var activeGridTab = "modded";   // for slot grid modded/vanilla tabs within single hull view
+var activeView = "single";      // single | compare | fullview | sidebyside
+var sourceMode = "modded";      // modded | vanilla | both
+var cmpSelections = [null, null]; // comparison hull keys: "m:0", "v:3", etc.
+
+/* ===== File loading ===== */
+function loadJSON(file, cb) {
+  if (!file) return;
+  var r = new FileReader();
+  r.onload = function(e) {
+    try { cb(JSON.parse(e.target.result)); }
+    catch(err) { alert("Invalid JSON: " + err.message); }
+  };
+  r.readAsText(file);
+}
+
+document.getElementById("fileInput").addEventListener("change", function(e) {
+  loadJSON(e.target.files[0], function(data) {
+    shipData = data;
+    updateSourceToggle();
+    populateSelect();
+    renderView();
+  });
+});
+
+document.getElementById("vanillaInput").addEventListener("change", function(e) {
+  loadJSON(e.target.files[0], function(data) {
+    vanillaData = data;
+    updateSourceToggle();
+    populateSelect();
+    renderView();
+  });
+});
+
+/* ===== Source toggle ===== */
+function updateSourceToggle() {
+  var btns = document.querySelectorAll("#sourceToggle button");
+  btns.forEach(function(btn) {
+    var src = btn.dataset.src;
+    if (src === "modded") btn.disabled = !shipData;
+    else if (src === "vanilla") btn.disabled = !vanillaData;
+    else if (src === "both") btn.disabled = !(shipData && vanillaData);
+  });
+  // If current mode is invalid, fall back
+  if (sourceMode === "modded" && !shipData && vanillaData) { sourceMode = "vanilla"; }
+  if (sourceMode === "vanilla" && !vanillaData && shipData) { sourceMode = "modded"; }
+  if (sourceMode === "both" && !(shipData && vanillaData)) { sourceMode = shipData ? "modded" : (vanillaData ? "vanilla" : "modded"); }
+  btns.forEach(function(btn) { btn.classList.toggle("active", btn.dataset.src === sourceMode); });
+}
+
+document.querySelectorAll("#sourceToggle button").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    if (btn.disabled) return;
+    sourceMode = btn.dataset.src;
+    document.querySelectorAll("#sourceToggle button").forEach(function(b) { b.classList.toggle("active", b.dataset.src === sourceMode); });
+    populateSelect();
+    cmpSelections = [null, null]; // reset comparison on source change
+    renderView();
+  });
+});
+
+/* ===== Hull list builder (source-aware, JSON order) ===== */
+function getHullList() {
+  var list = [];
+  if ((sourceMode === "modded" || sourceMode === "both") && shipData) {
+    shipData.forEach(function(h, i) {
+      list.push({ hull: h, src: "m", idx: i, key: "m:" + i });
+    });
+  }
+  if ((sourceMode === "vanilla" || sourceMode === "both") && vanillaData) {
+    vanillaData.forEach(function(h, i) {
+      list.push({ hull: h, src: "v", idx: i, key: "v:" + i });
+    });
+  }
+  return list;
+}
+
+function getHullByKey(key) {
+  if (!key) return null;
+  var parts = key.split(":");
+  var src = parts[0], idx = parseInt(parts[1]);
+  if (src === "m" && shipData && shipData[idx]) return { hull: shipData[idx], src: "m", idx: idx };
+  if (src === "v" && vanillaData && vanillaData[idx]) return { hull: vanillaData[idx], src: "v", idx: idx };
+  return null;
+}
+
+function hullLabel(entry) {
+  var h = entry.hull;
+  var fn = h.friendlyName || h.dataName;
+  var dn = h.dataName;
+  var label = fn !== dn ? fn + " (" + dn + ")" : dn;
+  var mass = h.mass_tons !== undefined ? " [" + h.mass_tons + "t]" : "";
+  if (sourceMode === "both") {
+    label += mass + (entry.src === "m" ? " [M]" : " [V]");
+  } else {
+    label += mass;
+  }
+  return label;
+}
+
+/* ===== Main ship dropdown (JSON order, source-filtered) ===== */
+function populateSelect() {
+  var sel = document.getElementById("shipSelect");
+  var list = getHullList();
+  if (list.length === 0) {
+    sel.disabled = true;
+    sel.innerHTML = "<option>Load a file first</option>";
+    return;
+  }
+  sel.disabled = false;
+  var prevVal = sel.value;
+  sel.innerHTML = "";
+  list.forEach(function(entry) {
+    var opt = document.createElement("option");
+    opt.value = entry.key;
+    opt.textContent = hullLabel(entry);
+    sel.appendChild(opt);
+  });
+  // Try to restore previous selection
+  if (prevVal && sel.querySelector('option[value="' + prevVal + '"]')) {
+    sel.value = prevVal;
+  }
+  sel.onchange = function() { renderView(); };
+}
+
+/* ===== View tab switching ===== */
+document.querySelectorAll(".view-tab").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    activeView = btn.dataset.view;
+    document.querySelectorAll(".view-tab").forEach(function(b) { b.classList.toggle("active", b.dataset.view === activeView); });
+    renderView();
+  });
+});
+
+/* ===== Master render dispatcher ===== */
+function renderView() {
+  var el = document.getElementById("content");
+  var list = getHullList();
+  if (list.length === 0) {
+    el.innerHTML = '<div class="empty">Load a TIShipHullTemplate.json to start.</div>';
+    return;
+  }
+
+  if (activeView === "single") {
+    renderSingleHull(el);
+  } else if (activeView === "compare") {
+    el.innerHTML = renderComparisonSection();
+    hookCmpControls();
+  } else if (activeView === "fullview") {
+    var html = renderComparisonSection();
+    html += '<div class="fullview-detail">';
+    html += renderSingleHullContent();
+    html += '</div>';
+    el.innerHTML = html;
+    hookCmpControls();
+    hookHoverForView();
+    hookSlotTabs();
+  } else if (activeView === "sidebyside") {
+    var html = '<div class="sbs-layout">';
+    html += '<div>' + renderSingleHullContent() + '</div>';
+    html += '<div>' + renderComparisonSection() + '</div>';
+    html += '</div>';
+    el.innerHTML = html;
+    hookCmpControls();
+    hookHoverForView();
+    hookSlotTabs();
+  }
+}
+
+/* ===== Single hull view (preserved logic) ===== */
+function renderSingleHull(el) {
+  el.innerHTML = renderSingleHullContent();
+  hookHoverForView();
+  hookSlotTabs();
+}
+
+function getSelectedHull() {
+  var sel = document.getElementById("shipSelect");
+  var key = sel.value;
+  return getHullByKey(key);
+}
+
+function renderSingleHullContent() {
+  var entry = getSelectedHull();
+  if (!entry) return '<div class="empty">Select a ship.</div>';
+  var ship = entry.hull;
+
+  // Find vanilla counterpart for comparison
+  var van = null;
+  if (entry.src === "m" && vanillaData) {
+    van = vanillaData.find(function(v) { return v.dataName === ship.dataName; }) || null;
+  } else if (entry.src === "v" && shipData) {
+    // If viewing vanilla hull, find modded counterpart
+    van = shipData.find(function(m) { return m.dataName === ship.dataName; }) || null;
+  }
+
+  var slots = getSlots(ship);
+  var vanSlots = van ? getSlots(van) : null;
+
+  var html = '<div class="panels"><div>';
+  html += '<h2>Stats</h2><div class="panel">' + renderStats(ship, van) + '</div>';
+  if (ship.weightedBuildMaterials) {
+    html += '<h2>Build materials</h2><div class="panel">' + renderMaterials(ship.weightedBuildMaterials) + '</div>';
+  }
+  if (van) {
+    var compareLabel = entry.src === "m" ? "Vanilla comparison (changed only)" : "Modded comparison (changed only)";
+    html += '<h2>' + compareLabel + '</h2><div class="panel">' + renderCompare(ship, van) + '</div>';
+  }
+  html += '<h2>Slot counts</h2><div class="panel">' + renderCounts(slots) + '</div>';
+  html += '</div><div>';
+
+  // Tabbed spatial grid
+  html += '<h2>Spatial grid</h2>';
+  if (vanSlots) {
+    html += '<div class="tabs">';
+    html += '<button class="tab slot-tab' + (activeGridTab === "modded" ? " active" : "") + '" data-tab="modded">' + (entry.src === "m" ? "Modded" : "Vanilla") + '</button>';
+    html += '<button class="tab slot-tab' + (activeGridTab === "vanilla" ? " active" : "") + '" data-tab="vanilla">' + (entry.src === "m" ? "Vanilla" : "Modded") + '</button>';
+    html += '</div>';
+  }
+  var showSlots = (activeGridTab === "vanilla" && vanSlots) ? vanSlots : slots;
+  html += '<div class="panel tab-panel"><div class="grid-wrap" id="gridWrap">' + renderGrid(showSlots) + '</div></div>';
+
+  // Tabbed slot table
+  if (vanSlots) {
+    html += '<h2>Slot array (hover to highlight)</h2>';
+    html += '<div class="tabs">';
+    html += '<button class="tab slot-tab' + (activeGridTab === "modded" ? " active" : "") + '" data-tab="modded">' + (entry.src === "m" ? "Modded" : "Vanilla") + '</button>';
+    html += '<button class="tab slot-tab' + (activeGridTab === "vanilla" ? " active" : "") + '" data-tab="vanilla">' + (entry.src === "m" ? "Vanilla" : "Modded") + '</button>';
+    html += '</div>';
+    html += '<div class="panel tab-panel" style="max-height:500px;overflow-y:auto;">' + renderTable(showSlots) + '</div>';
+  } else {
+    html += '<h2>Slot array (hover to highlight)</h2><div class="panel" style="max-height:500px;overflow-y:auto;">' + renderTable(slots) + '</div>';
+  }
+
+  html += '</div></div>';
+  return html;
+}
+
+function hookHoverForView() {
+  var entry = getSelectedHull();
+  if (!entry) return;
+  var ship = entry.hull;
+  var van = null;
+  if (entry.src === "m" && vanillaData) van = vanillaData.find(function(v) { return v.dataName === ship.dataName; }) || null;
+  else if (entry.src === "v" && shipData) van = shipData.find(function(m) { return m.dataName === ship.dataName; }) || null;
+  var vanSlots = van ? getSlots(van) : null;
+  var showSlots = (activeGridTab === "vanilla" && vanSlots) ? vanSlots : getSlots(ship);
+  hookHover(showSlots);
+}
+
+function hookSlotTabs() {
+  document.querySelectorAll(".slot-tab").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      activeGridTab = btn.dataset.tab;
+      renderView();
+    });
+  });
+}
+
+/* ===== PRESERVED: Original render functions ===== */
+function renderStats(ship, van) {
+  var html = '<div class="stat-grid">';
+  STATS.forEach(function(pair) {
+    var key = pair[0], label = pair[1];
+    var v = ship[key];
+    if (v === undefined || v === null) return;
+    var changed = van && van[key] !== undefined && van[key] !== v;
+    html += '<div class="stat-card' + (changed ? ' changed' : '') + '">';
+    html += '<div class="lbl">' + label + '</div>';
+    html += '<div class="val">' + v + '</div></div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function renderMaterials(mats) {
+  if (!mats || typeof mats !== 'object') return '';
+  var html = '<div class="mat-grid">';
+  Object.keys(mats).forEach(function(k) {
+    html += '<div class="mat-card"><div class="lbl">' + k + '</div><div class="val">' + mats[k] + '</div></div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function renderCompare(ship, van) {
+  var diffs = STATS.filter(function(pair) {
+    return ship[pair[0]] !== undefined && van[pair[0]] !== undefined && ship[pair[0]] !== van[pair[0]];
+  });
+  var modSlots = getSlots(ship).length;
+  var vanSlotsLen = getSlots(van).length;
+  var slotDiff = modSlots !== vanSlotsLen;
+
+  if (diffs.length === 0 && !slotDiff) return '<div style="font-size:13px;color:#888">All stats match.</div>';
+
+  var html = '<table class="compare-table"><thead><tr><th>Field</th><th>Selected</th><th>Counterpart</th><th>Delta</th></tr></thead><tbody>';
+  diffs.forEach(function(pair) {
+    var key = pair[0], label = pair[1];
+    var vv = van[key], mv = ship[key];
+    var num = typeof vv === 'number' && typeof mv === 'number';
+    var d = num ? mv - vv : null;
+    var cls = d !== null ? (d > 0 ? 'dpos' : 'dneg') : '';
+    var sign = d !== null && d > 0 ? '+' : '';
+    html += '<tr><td>' + label + '</td><td>' + mv + '</td><td>' + vv + '</td>';
+    html += '<td class="' + cls + '">' + (d !== null ? sign + d : '&ne;') + '</td></tr>';
+  });
+  if (slotDiff) {
+    var d = modSlots - vanSlotsLen;
+    var cls = d > 0 ? 'dpos' : 'dneg';
+    var sign = d > 0 ? '+' : '';
+    html += '<tr><td>Total slots</td><td>' + modSlots + '</td><td>' + vanSlotsLen + '</td>';
+    html += '<td class="' + cls + '">' + sign + d + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  return html;
+}
+
+function renderCounts(slots) {
+  if (!slots || slots.length === 0) return '<div style="color:#666">No slots defined.</div>';
+  var byType = {}, byCat = {};
+  slots.forEach(function(s) {
+    var t = s.moduleSlotType || "Unknown";
+    byType[t] = (byType[t] || 0) + 1;
+    var c = CAT[t] || "Other";
+    byCat[c] = (byCat[c] || 0) + 1;
+  });
+
+  var html = '<div class="counts"><div class="count-col"><div class="ch">By type</div>';
+  Object.entries(byType).sort(function(a,b){return b[1]-a[1];}).forEach(function(pair) {
+    var t = pair[0], n = pair[1];
+    var c = COLORS[t] || COLORS.None;
+    html += '<div class="count-row"><span class="count-dot" style="background:'+c.bg+';border:1px solid '+c.fg+'"></span>'+t+' <b>'+n+'</b></div>';
+  });
+  html += '</div><div class="count-col"><div class="ch">By category</div>';
+  Object.entries(byCat).sort(function(a,b){return b[1]-a[1];}).forEach(function(pair) {
+    html += '<div class="count-row">'+pair[0]+' <b>'+pair[1]+'</b></div>';
+  });
+  html += '<div class="total">Total: '+slots.length+'</div></div></div>';
+  return html;
+}
+
+function renderGrid(slots) {
+  if (!slots || slots.length === 0) return '<div style="color:#666;padding:16px;">No slots to display.</div>';
+
+  var allValid = true;
+  for (var i = 0; i < slots.length; i++) {
+    var s = slots[i];
+    if (typeof s.x !== 'number' || typeof s.y !== 'number' || isNaN(s.x) || isNaN(s.y)) {
+      allValid = false;
+      break;
+    }
+  }
+  if (!allValid) return '<div style="color:#666;padding:16px;">Slots have invalid or missing coordinates.</div>';
+
+  var maxX = 0, maxY = 0;
+  slots.forEach(function(s) { if (s.x > maxX) maxX = s.x; if (s.y > maxY) maxY = s.y; });
+
+  var grid = {};
+  slots.forEach(function(s, i) { grid[s.x+","+s.y] = {t:s.moduleSlotType, idx:i}; });
+
+  var cw=62, ch=46, padL=36, padT=28, gap=3;
+  var w = padL + (maxX+1)*(cw+gap) + 10;
+  var h = padT + (maxY+1)*(ch+gap) + 10;
+
+  var svg = '<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" xmlns="http://www.w3.org/2000/svg">';
+  svg += '<style>text{font-family:system-ui,sans-serif;}</style>';
+
+  for (var x=0; x<=maxX; x++) {
+    var cx = padL + x*(cw+gap) + cw/2;
+    svg += '<text x="'+cx+'" y="'+(padT-10)+'" text-anchor="middle" fill="#666" font-size="10">x='+x+'</text>';
+  }
+  for (var y=0; y<=maxY; y++) {
+    var cy = padT + y*(ch+gap) + ch/2 + 1;
+    svg += '<text x="'+(padL-6)+'" y="'+cy+'" text-anchor="end" dominant-baseline="central" fill="#666" font-size="10">y='+y+'</text>';
+  }
+
+  for (var y=0; y<=maxY; y++) {
+    for (var x=0; x<=maxX; x++) {
+      var cx = padL + x*(cw+gap);
+      var cy = padT + y*(ch+gap);
+      var slot = grid[x+","+y];
+      if (slot) {
+        var c = COLORS[slot.t] || COLORS.None;
+        var isHl = hlIdx !== null && hlIdx === slot.idx;
+        var stroke = isHl ? '#F0997B' : 'rgba(255,255,255,0.12)';
+        var sw = isHl ? 2 : 0.5;
+        var abbr = ABBREV[slot.t] || slot.t.substring(0,3);
+        svg += '<rect x="'+cx+'" y="'+cy+'" width="'+cw+'" height="'+ch+'" rx="4" fill="'+c.bg+'" stroke="'+stroke+'" stroke-width="'+sw+'"/>';
+        svg += '<text x="'+(cx+cw/2)+'" y="'+(cy+15)+'" text-anchor="middle" dominant-baseline="central" fill="'+c.fg+'" font-size="13" font-weight="500" font-family="monospace">'+slot.idx+'</text>';
+        svg += '<text x="'+(cx+cw/2)+'" y="'+(cy+33)+'" text-anchor="middle" dominant-baseline="central" fill="'+c.fg+'" font-size="10" opacity="0.8">'+abbr+'</text>';
+      } else {
+        svg += '<rect x="'+cx+'" y="'+cy+'" width="'+cw+'" height="'+ch+'" rx="4" fill="none" stroke="rgba(128,128,128,0.12)" stroke-width="0.5" stroke-dasharray="4 4"/>';
+      }
+    }
+  }
+  svg += '</svg>';
+  return svg;
+}
+
+function renderTable(slots) {
+  if (!slots || slots.length === 0) return '<div style="color:#666">No slots.</div>';
+  var html = '<table class="slot-table"><thead><tr><th>Idx</th><th>Type</th><th>Coord</th><th>Category</th></tr></thead><tbody>';
+  slots.forEach(function(s, i) {
+    var c = COLORS[s.moduleSlotType] || COLORS.None;
+    html += '<tr class="slot-row" data-idx="'+i+'">';
+    html += '<td>['+i+']</td>';
+    html += '<td><span class="badge" style="background:'+c.bg+';color:'+c.fg+'">'+s.moduleSlotType+'</span></td>';
+    html += '<td>('+s.x+','+s.y+')</td>';
+    html += '<td style="color:#888">'+(CAT[s.moduleSlotType]||"\u2014")+'</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function hookHover(slots) {
+  document.querySelectorAll(".slot-row").forEach(function(row) {
+    row.addEventListener("mouseenter", function() {
+      hlIdx = parseInt(row.dataset.idx);
+      var gw = document.getElementById("gridWrap");
+      if (gw) gw.innerHTML = renderGrid(slots);
+      document.querySelectorAll(".slot-row").forEach(function(r) {
+        r.classList.toggle("hl", parseInt(r.dataset.idx) === hlIdx);
+      });
+    });
+    row.addEventListener("mouseleave", function() {
+      hlIdx = null;
+      var gw = document.getElementById("gridWrap");
+      if (gw) gw.innerHTML = renderGrid(slots);
+      document.querySelectorAll(".slot-row").forEach(function(r) { r.classList.remove("hl"); });
+    });
+  });
+}
+
+/* ===== Comparison Grid ===== */
+
+function getStatValue(hull, key) {
+  if (!hull) return null;
+  var h = hull.hull || hull;
+  var slots = getSlots(h);
+  var mass = h.mass_tons || 0;
+
+  // Group headers
+  if (key.startsWith("_group_")) return null;
+
+  // Direct JSON fields
+  if (!key.startsWith("_")) {
+    var v = h[key];
+    return v !== undefined ? v : null;
+  }
+
+  // Derived: slot counts from array
+  if (key === "_wpnSlots") {
+    return slots.filter(function(s) { var t = s.moduleSlotType; return t === "NoseHardPoint" || t === "HullHardPoint"; }).length;
+  }
+  if (key === "_utlSlots") {
+    return slots.filter(function(s) { return s.moduleSlotType === "Utility"; }).length;
+  }
+  if (key === "_totalSlots") {
+    return slots.length;
+  }
+
+  // Derived: ratios
+  if (key === "_density") {
+    var vol = h.volume || 0;
+    return vol > 0 ? mass / vol : null;
+  }
+  if (key === "_siPerKton") {
+    return mass > 0 ? (h.structuralIntegrity || 0) / mass * 1000 : null;
+  }
+  if (key === "_crewPerKton") {
+    return mass > 0 ? (h.crew || 0) / mass * 1000 : null;
+  }
+  if (key === "_maintPerTon") {
+    return mass > 0 ? (h.monthlyIncome_Money || 0) / mass : null;
+  }
+  if (key === "_wpnPerKton") {
+    var wpns = (h.noseHardpoints || 0) + (h.hullHardpoints || 0);
+    return mass > 0 ? wpns / mass * 1000 : null;
+  }
+  if (key === "_utlPerKton") {
+    var utl = slots.filter(function(s) { return s.moduleSlotType === "Utility"; }).length;
+    return mass > 0 ? utl / mass * 1000 : null;
+  }
+
+  // Materials
+  if (key.startsWith("_mat_")) {
+    var matKey = key.substring(5);
+    var mats = h.weightedBuildMaterials;
+    if (!mats) return null;
+    var v = mats[matKey];
+    return v !== undefined ? v : 0;
+  }
+
+  return null;
+}
+
+function fmtVal(v) {
+  if (v === null || v === undefined) return '<span style="color:#555">\u2014</span>';
+  if (typeof v === "boolean") return v ? "Yes" : "No";
+  if (typeof v === "number") {
+    if (Number.isInteger(v)) return String(v);
+    // Auto precision: show as integer if clean, else 2 decimal
+    var r2 = Math.round(v * 100) / 100;
+    if (r2 === Math.round(r2)) return String(Math.round(r2));
+    return r2.toFixed(2);
+  }
+  return String(v);
+}
+
+function renderComparisonSection() {
+  var list = getHullList();
+  if (list.length === 0) return '<div class="empty">Load files and select a source.</div>';
+
+  // Ensure at least 2 selections
+  if (cmpSelections.length < 2) cmpSelections = [null, null];
+
+  // Auto-populate empty selections with first available hulls
+  for (var i = 0; i < cmpSelections.length; i++) {
+    if (!cmpSelections[i] && list[i]) cmpSelections[i] = list[i].key;
+  }
+
+  var html = '<h2>Hull Comparison</h2>';
+
+  // Dropdowns
+  html += '<div class="cmp-controls">';
+  cmpSelections.forEach(function(sel, i) {
+    html += '<div class="cmp-slot">';
+    html += '<select class="cmp-select" data-cmp-idx="' + i + '">';
+    html += '<option value="">\u2014 Select hull \u2014</option>';
+    list.forEach(function(entry) {
+      var selected = entry.key === sel ? " selected" : "";
+      html += '<option value="' + entry.key + '"' + selected + '>' + hullLabel(entry) + '</option>';
+    });
+    html += '</select>';
+    if (i >= 2) {
+      html += '<button class="btn-sm btn-rm" data-rm-idx="' + i + '" title="Remove">\u00D7</button>';
+    }
+    html += '</div>';
+  });
+  html += '<button class="btn-sm" id="addHullBtn">+ Add Hull</button>';
+  html += '</div>';
+
+  // Grid table
+  var selected = cmpSelections.map(function(key) { return key ? getHullByKey(key) : null; });
+  var anySelected = selected.some(function(s) { return s !== null; });
+
+  if (!anySelected) {
+    html += '<div class="panel"><div class="empty">Select hulls to compare.</div></div>';
+    return html;
+  }
+
+  html += '<div class="panel" style="overflow-x:auto;">';
+  html += '<table class="cmp-grid"><thead><tr>';
+  html += '<th></th>';
+  selected.forEach(function(entry) {
+    if (!entry) { html += '<th style="color:#555">\u2014</th>'; return; }
+    var h = entry.hull;
+    var fn = h.friendlyName || h.dataName;
+    var tag = '<span class="src-tag ' + (entry.src === "m" ? "src-m" : "src-v") + '">' + (entry.src === "m" ? "M" : "V") + '</span>';
+    html += '<th>' + fn + tag + '</th>';
+  });
+  html += '</tr></thead><tbody>';
+
+  CMP_STATS.forEach(function(row) {
+    var key = row[0], display = row[1], tooltip = row[2], group = row[3], isDerived = row[4];
+
+    // Group header
+    if (key.startsWith("_group_")) {
+      html += '<tr class="group-header"><td colspan="' + (selected.length + 1) + '">' + display + '</td></tr>';
+      return;
+    }
+
+    html += '<tr>';
+    if (isDerived) {
+      html += '<td><span class="derived-lbl" title="' + tooltip + '">' + display + '</span></td>';
+    } else {
+      html += '<td title="' + tooltip + '">' + display + '</td>';
+    }
+
+    selected.forEach(function(entry) {
+      var val = entry ? getStatValue(entry, key) : null;
+      html += '<td>' + fmtVal(val) + '</td>';
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function hookCmpControls() {
+  // Dropdowns
+  document.querySelectorAll(".cmp-select").forEach(function(sel) {
+    sel.addEventListener("change", function() {
+      var idx = parseInt(sel.dataset.cmpIdx);
+      cmpSelections[idx] = sel.value || null;
+      renderView();
+    });
+  });
+
+  // Remove buttons
+  document.querySelectorAll("[data-rm-idx]").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var idx = parseInt(btn.dataset.rmIdx);
+      cmpSelections.splice(idx, 1);
+      if (cmpSelections.length < 2) cmpSelections.push(null);
+      renderView();
+    });
+  });
+
+  // Add hull button
+  var addBtn = document.getElementById("addHullBtn");
+  if (addBtn) {
+    addBtn.addEventListener("click", function() {
+      cmpSelections.push(null);
+      renderView();
+    });
+  }
+}
+</script>
+</body>
+</html>
