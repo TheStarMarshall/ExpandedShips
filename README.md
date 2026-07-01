@@ -8,22 +8,11 @@ If you only want to play the mod, see the Steam description instead.
 
 ```
 Mods/Enabled/ExpandedFleetsAndNavies/
-├── ModInfo.json                      # UMM mod manifest
-├── BetterKinetics.dll                # Compiled Harmony patches and config readers
-├── HullDefinitions.cfg               # Hull registry config (read by HullRegistry)
-├── ControllerDefinitions.cfg         # Controller weapon-slot remap config (read by ControllerRegistry)
-├── TIShipHullTemplate.json           # Hull template patches
-├── TIShipHullTemplate.en             # Hull localization
-├── TIHabModuleTemplate.json          # Hab module patches + custom field data
-├── TIHabModuleTemplate.en            # Hab localization
-├── TIDriveTemplate.json              # Drive entries
-├── TIDriveTemplate.en                # Drive localization
-├── TIProjectTemplate.json            # Project tree changes
-├── TIProjectTemplate.en              # Project localization
-├── TITechTemplate.json               # Tech tree additions
-├── TITechTemplate.en                 # Tech localization
-├── TIMagneticGunTemplate.json        # Kinetic weapon stat changes
-└── (asset bundles)                   # scoutcruiser, newbattlecruiser, newbattleship
+├── ModInfo.json                 # UMM mod manifest
+├── BetterKinetics.dll           # Compiled Harmony patches and config readers
+├── HullDefinitions.cfg          # Hull registry config (read by HullRegistry)
+├── ControllerDefinitions.cfg    # Controller weapon-slot remap config (read by ControllerRegistry)
+└── ...                          # Vanilla template patches, localization, and asset bundles
 ```
 
 The mod loads via UMM's `Main.Load(UnityModManager.ModEntry)` entry point in `BetterKinetics.Main`. At load, `ConfigReader.Init`, `HullRegistry.Init`, and `ControllerRegistry.Init` run before `Harmony.PatchAll`.
@@ -293,4 +282,5 @@ Expanded Fleets and Navies applies Harmony patches to the following vanilla meth
 | `DriveVisualPatch` | `TIDriveTemplate.modelResource(hull, appearanceIndex)` | Postfix | Rewrites the drive asset path for hulls registered in `HullDefinitions.cfg`. PatchOnly and Hybrid hulls with `vanillaDriveDataName` get the alias substituted; FullCustom hulls get `<bundleName>/<drivePrefab>`. |
 | `DriveVariantPatch` | `ShipModelController.BuildDrives` | Postfix | Activates the matching baked drive-variant child on the prefab for the equipped drive. |
 | `SetSkinSkipPatch` | `HumanShipController.SetSkin` | Prefix | Returns `false` (skips vanilla) for Hybrid and FullCustom hulls — vanilla SetSkin would overwrite the edit-time-baked materials with cross-bundle paths that don't resolve. PatchOnly hulls fall through to vanilla. |
+| `CombatScalePatch` | `ShipVisController.InitializeShipVisualizer` | Postfix | Normalizes each ship's rendered length to its hull template's `length_m` at visualizer creation, keeping on-screen sizing consistent and proportional across combat and strategic views. |
 | `WeaponMountPatch.DynamicPrefix` | `<ControllerClass>.SlotToWeaponMountIndex` per registered controller | Prefix | Applied dynamically by `ControllerRegistry.PatchWeaponMounts` to each controller class registered in `ControllerDefinitions.cfg`. Returns the mapped `index` (or override `index`) for matching slots and skips vanilla; falls through for unmapped slots. |
