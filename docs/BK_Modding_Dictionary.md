@@ -1,4 +1,4 @@
-# BetterKinetics — Modding Dictionary & Reference
+# BetterKinetics - Modding Dictionary & Reference
 
 **Player-facing name:** Expanded Fleets and Navies · **Internal/file name:** BetterKinetics
 
@@ -16,68 +16,68 @@ All require `using PavonisInteractive.TerraInvicta;`
 
 **Architecture characteristics**:
 
-- **Abstract base** with `[fsObject(Converter = typeof(TIGameStateConverter))]` — every persistent runtime object goes through this serializer.
-- **Identity by ID**: equality, hashing, and ordering are all delegated to `GameStateID`. Two TIGameState references with the same ID are equal regardless of object reference identity. This matters when comparing `someObj == otherObj` after save load — the references differ but IDs match.
+- **Abstract base** with `[fsObject(Converter = typeof(TIGameStateConverter))]` - every persistent runtime object goes through this serializer.
+- **Identity by ID**: equality, hashing, and ordering are all delegated to `GameStateID`. Two TIGameState references with the same ID are equal regardless of object reference identity. This matters when comparing `someObj == otherObj` after save load - the references differ but IDs match.
 - **`archived` soft-delete**: objects are not deleted from memory; they're marked `archived = true` via `ArchiveState()`. Many TI systems filter out archived objects in their queries (e.g., `from x in habs where !x.archived select x`). When patching, check this flag.
 - **Self-typing via `isXxxState` virtual booleans**: 29 virtual properties default to `false`. Each concrete subclass overrides exactly one to `true`. Code that takes a `TIGameState` parameter often dispatches via `if (location.isHabState) { ... } else if (location.isOrbitState) { ... }` rather than C# `is` checks. **Patches that match the same dispatch pattern integrate cleanly**.
 - **Reference accessors via `ref_xxxState` virtuals**: 29 virtual properties default to `null`. Each concrete subclass overrides relevant ones to return references to its parents/children/related objects. For example, `TIHabModuleState` overrides `ref_hab` to return its containing hab. This lets generic code traverse relationships without knowing concrete types: `someState.ref_hab?.faction` works whether `someState` is a hab, hab module, fleet docked at hab, etc.
 - **8 lifecycle init virtuals** for staged construction: `PostGameStateCreateInit_OnCreationOnly_1` through `PostEverythingSaveRepair_8`. Subclasses override the relevant stages. The numbered suffix indicates init order; later stages can rely on earlier stages having completed.
-- **Reflection-based template lookup**: `GetMyTemplate()` uses `Type.GetProperty("template", ...)` on the derived type. Concrete state classes (TIHabModuleState, TIShipState, etc.) declare a typed `template` property (e.g., `TIHabModuleTemplate`) that GetMyTemplate finds via reflection. The base class doesn't constrain the template type — each subclass picks its own.
+- **Reflection-based template lookup**: `GetMyTemplate()` uses `Type.GetProperty("template", ...)` on the derived type. Concrete state classes (TIHabModuleState, TIShipState, etc.) declare a typed `template` property (e.g., `TIHabModuleTemplate`) that GetMyTemplate finds via reflection. The base class doesn't constrain the template type - each subclass picks its own.
 
 **Direct subclasses**:
 
-- `TIHabModuleState` — hab module (this is what BK MiningPatch iterates), inherits TIGameState directly
-- `TISectorState` — a sector within a hab, inherits TIGameState directly (despite being part of the space-asset chain conceptually, it doesn't go through TISpaceGameState)
+- `TIHabModuleState` - hab module (this is what BK MiningPatch iterates), inherits TIGameState directly
+- `TISectorState` - a sector within a hab, inherits TIGameState directly (despite being part of the space-asset chain conceptually, it doesn't go through TISpaceGameState)
 - `TISpaceGameState` (abstract subclass, just 2 members: barycenter + isSpaceGameState)
-  - `TIHabSiteState` (concrete — surface base location; inherits TISpaceGameState directly, NOT through TISpaceObjectState; has parentBody, hab, latitude/longitude, mining productivity fields, nested Statistics class with SpaceResourceGrade enum)
-  - `TISpaceObjectState` (abstract — adds visualizer interface, orbital mechanics fields, static distance/transfer math)
-    - `TINaturalSpaceObjectState` (abstract — adds `habs`, `Colonized()`, `Populous()`, `maxHabTier`)
-      - `TISpaceBodyState` (concrete — overrides `habs` to include surfaceBases; has habSites, naturalSatellites, lagrangePoints)
-      - `TILagrangePointState` (concrete — secondary object reference, synthetic mass, Earth-LP-always-Colonized override)
-    - `TISpaceAssetState` (abstract — adds `faction`, `orbitState`, abstract `IsAlien()`, abstract `CombatRange_km()`, implements ITransferTarget)
-      - `TIHabState` — stations and outposts
-      - `TISpaceFleetState` — fleets
-      - `TISpaceShipState` — individual ships
-  - `TIOrbitState` (concrete — implements ITransferTarget, has `assetsInOrbit`/`stationsInOrbit`/`fleetsInOrbit`/`isEarthLEO`/`interfaceOrbit`/`amat_ugpy`)
-- `TIRegionState` — Earth surface region
-- `TINationState` — Earth nation
-- `TIFactionState` — player or AI faction
-- `TICouncilorState` — councilor (game agent)
-- `TIArmyState` — Earth army
+  - `TIHabSiteState` (concrete - surface base location; inherits TISpaceGameState directly, NOT through TISpaceObjectState; has parentBody, hab, latitude/longitude, mining productivity fields, nested Statistics class with SpaceResourceGrade enum)
+  - `TISpaceObjectState` (abstract - adds visualizer interface, orbital mechanics fields, static distance/transfer math)
+    - `TINaturalSpaceObjectState` (abstract - adds `habs`, `Colonized()`, `Populous()`, `maxHabTier`)
+      - `TISpaceBodyState` (concrete - overrides `habs` to include surfaceBases; has habSites, naturalSatellites, lagrangePoints)
+      - `TILagrangePointState` (concrete - secondary object reference, synthetic mass, Earth-LP-always-Colonized override)
+    - `TISpaceAssetState` (abstract - adds `faction`, `orbitState`, abstract `IsAlien()`, abstract `CombatRange_km()`, implements ITransferTarget)
+      - `TIHabState` - stations and outposts
+      - `TISpaceFleetState` - fleets
+      - `TISpaceShipState` - individual ships
+  - `TIOrbitState` (concrete - implements ITransferTarget, has `assetsInOrbit`/`stationsInOrbit`/`fleetsInOrbit`/`isEarthLEO`/`interfaceOrbit`/`amat_ugpy`)
+- `TIRegionState` - Earth surface region
+- `TINationState` - Earth nation
+- `TIFactionState` - player or AI faction
+- `TICouncilorState` - councilor (game agent)
+- `TIArmyState` - Earth army
 - `TIControlPoint` (or `TIControlPointState`)
-- `TIWarState` — wars between factions
-- `TIOrgState` — organizations
-- `TIOfficerState` — ship/army officers
-- `TIRegionAlienEntityState`, `TIRegionSpaceFacilityState`, `TIRegionAlienAssetState`, `TIRegionUFOCrashdownState`, `TIRegionXenoformingState`, `TIRegionUFOLandingState` (variant), `TIRegionAlienFacilityState`, `TIRegionAlienActivityState` — alien-related Earth-region state types
+- `TIWarState` - wars between factions
+- `TIOrgState` - organizations
+- `TIOfficerState` - ship/army officers
+- `TIRegionAlienEntityState`, `TIRegionSpaceFacilityState`, `TIRegionAlienAssetState`, `TIRegionUFOCrashdownState`, `TIRegionXenoformingState`, `TIRegionUFOLandingState` (variant), `TIRegionAlienFacilityState`, `TIRegionAlienActivityState` - alien-related Earth-region state types
 
 **Practical patterns for modders**:
 
-1. **Type discrimination in Postfix patches**: When a method takes `TIGameState` parameters, `location.isHabState` is the cleanest dispatch — no reflection, no boxing, no LINQ. Concrete patterns are visible in BK's BuildLimitPatch (uses `is TISpaceGameState` cast) and could equally use `location.isSpaceGameState` flag.
-2. **Reference traversal**: `state.ref_faction` works on every state type that has a meaningful faction owner. Don't instantiate type checks for every relationship — use the ref_* getters.
+1. **Type discrimination in Postfix patches**: When a method takes `TIGameState` parameters, `location.isHabState` is the cleanest dispatch - no reflection, no boxing, no LINQ. Concrete patterns are visible in BK's BuildLimitPatch (uses `is TISpaceGameState` cast) and could equally use `location.isSpaceGameState` flag.
+2. **Reference traversal**: `state.ref_faction` works on every state type that has a meaningful faction owner. Don't instantiate type checks for every relationship - use the ref_* getters.
 3. **ID equality**: when comparing if two state references are "the same object" across save/load boundaries, use `Equals()` (delegates to ID) not `==` reference equality. Within a single session, `==` works (returns true via `Equals`).
-4. **Archived filtering**: many TI internal queries filter `where !x.archived` — but NOT all. `TINaturalSpaceObjectState.habs` (= `stationsInOrbit`) does NOT filter archived habs (only `fleetsInOrbit` does). BK BuildLimitPatch iterates `body.habs` without filtering archived; per-body archived hab counts are presumably zero-or-rare in normal gameplay (decommissioning fully removes the hab from the orbit), but worth verifying. **When writing new patches, do not assume any TI collection filters archived — check the getter source.**
+4. **Archived filtering**: many TI internal queries filter `where !x.archived` - but NOT all. `TINaturalSpaceObjectState.habs` (= `stationsInOrbit`) does NOT filter archived habs (only `fleetsInOrbit` does). BK BuildLimitPatch iterates `body.habs` without filtering archived; per-body archived hab counts are presumably zero-or-rare in normal gameplay (decommissioning fully removes the hab from the orbit), but worth verifying. **When writing new patches, do not assume any TI collection filters archived - check the getter source.**
 
-### TIUtilities — Static utility class for state operations
+### TIUtilities - Static utility class for state operations
 
-`TIUtilities` is a `public static class` in `PavonisInteractive.TerraInvicta` with **117 public static methods** (TIUtilities.cs, 2,485 lines). It's the canonical place for cross-cutting helpers operating on TIGameState references. **5 methods are extension methods** (using `this TIGameState` parameter) — meaning they're callable as `someState.MethodName()` syntax even though defined elsewhere:
+`TIUtilities` is a `public static class` in `PavonisInteractive.TerraInvicta` with **117 public static methods** (TIUtilities.cs, 2,485 lines). It's the canonical place for cross-cutting helpers operating on TIGameState references. **5 methods are extension methods** (using `this TIGameState` parameter) - meaning they're callable as `someState.MethodName()` syntax even though defined elsewhere:
 
 **Extension methods on TIGameState**:
-- `IsIrradiated()` (TIUtilities.cs:340) — see "BK's Hab Patches" subsection in §1 for the NotInIrradiated note
-- `GetDebugString(bool embedLinks = false)` (TIUtilities.cs:129) — debug string for any state
-- `GetLocationDebugString(bool embedLinks = false)` (TIUtilities.cs:151) — location-focused debug string
+- `IsIrradiated()` (TIUtilities.cs:340) - see "BK's Hab Patches" subsection in §1 for the NotInIrradiated note
+- `GetDebugString(bool embedLinks = false)` (TIUtilities.cs:129) - debug string for any state
+- `GetLocationDebugString(bool embedLinks = false)` (TIUtilities.cs:151) - location-focused debug string
 - Also extension on Trajectory: `GetTrajectoryDebugString` (TIUtilities.cs:167)
 - Also extension on `IEnumerable<T>`: `Median<T>(Func<T,float>)` (TIUtilities.cs:714)
 
-**Location-resolver methods (NOT extensions; take TIGameState as parameter)** — useful for any patch that needs to walk from one location concept to another:
-- `ObjectToSupraLocation(TIGameState)` — returns "above" location: ref_orbit → ref_fleet → ref_spaceBody (for navigation/travel destinations)
-- `ObjectToExactLocation(TIGameState)` — returns most-specific location: ref_region → ref_ship → ref_fleet[0] → ref_hab → ref_councilor.location → ref_habSite → org's home/councilor location (for UI focus/selection)
-- `ObjectToScannableLocation(TIGameState)` — returns location appropriate for surveillance scanning
-- `GameStateHasLatLong(TIGameState)` — true if state has surface coordinates (region or habSite)
-- `GameStateLatLong(TIGameState)` — Vector2(latitude, longitude); checks ref_region → ref_hab.habSite (for IsBase) → ref_habSite
+**Location-resolver methods (NOT extensions; take TIGameState as parameter)** - useful for any patch that needs to walk from one location concept to another:
+- `ObjectToSupraLocation(TIGameState)` - returns "above" location: ref_orbit → ref_fleet → ref_spaceBody (for navigation/travel destinations)
+- `ObjectToExactLocation(TIGameState)` - returns most-specific location: ref_region → ref_ship → ref_fleet[0] → ref_hab → ref_councilor.location → ref_habSite → org's home/councilor location (for UI focus/selection)
+- `ObjectToScannableLocation(TIGameState)` - returns location appropriate for surveillance scanning
+- `GameStateHasLatLong(TIGameState)` - true if state has surface coordinates (region or habSite)
+- `GameStateLatLong(TIGameState)` - Vector2(latitude, longitude); checks ref_region → ref_hab.habSite (for IsBase) → ref_habSite
 
 **Irradiation helpers**:
-- `IsIrradiated(this TIGameState)` — see above
-- `IrradiatedMultiplier(TIGameState)` — float; checks isXxxState flags first (faster), then ref_xxx fallbacks; defaults to `1f`. Used in build cost calculations.
+- `IsIrradiated(this TIGameState)` - see above
+- `IrradiatedMultiplier(TIGameState)` - float; checks isXxxState flags first (faster), then ref_xxx fallbacks; defaults to `1f`. Used in build cost calculations.
 
 **Camera/UI helpers** (multiple `GotoGameState` overloads): for TIFactionState, TIGlobalResearchState, TIGlobalValuesState, TIMissionPhaseState, TICouncilorState, CouncilorView, generic TIGameState. Plus `LookAtGameState`, `GotoSelectedStateUI`, `TriggerSelectionEvent`.
 
@@ -100,7 +100,7 @@ All require `using PavonisInteractive.TerraInvicta;`
 **Static fields on TIUtilities**: `IsInCombatMode` (bool, get-only), `assetLoader` (AssetLoader), `camera` (CameraManager from `World.Active.GetExistingManager<CameraManager>()`).
 
 **Practical implications for BK**:
-- **`IrradiatedMultiplier(location)`** could replace `TIHabState.GetIrradiatedMultiplier(location)` (the static helper BK might use for irradiation-aware computations) — the TIUtilities version is essentially a more defensive version that handles all 3 location types plus null fallbacks.
+- **`IrradiatedMultiplier(location)`** could replace `TIHabState.GetIrradiatedMultiplier(location)` (the static helper BK might use for irradiation-aware computations) - the TIUtilities version is essentially a more defensive version that handles all 3 location types plus null fallbacks.
 - **`CopyComponent(Component, GameObject)`** is useful for prefab editing patches (BK's hull rebuild could use this).
 - **`PromptPlayerForBugReport(message, recommendReload = true)`** is what TI uses for graceful crash handling. BK's catch-blocks could call this for serious failures instead of just logging.
 - **`IsLinux()` / `IsSteamDeck()`** could conditionally enable/disable BK features that have platform issues.
@@ -109,20 +109,20 @@ All require `using PavonisInteractive.TerraInvicta;`
 
 | Type | Role | Notes |
 |---|---|---|
-| `TIHabModuleTemplate` | Static module definition (read-only at runtime) | NO `[JsonExtensionData]` attribute — custom JSON fields silently dropped at deserialization. Inherits from `TIDataTemplate`. Key fields: `coreModule` (bool), `habType` (HabType enum: Any/Base/Station), `tier` (int 1-3), `requiredProjectName` (string, parallel to ship side), `specialRules` (List<HabModuleSpecialRule>), `specialRulesValue` (float), `weightedBuildMaterials` (ResourceCostBuilder). Computed properties: `slotsProvided` (only on coreModule: 4/12/20 for tier 1/2/3), `weaponMounts` (only on spaceCombatModule: 3/3/4 for tier 1/2/3, alien tier 3 = 3 not 4). Has `SharesUpgradePath()` method (used by BK BuildLimitPatch). New behaviors require DLL raw JSON parsing. |
-| `TIHabModuleState` | Live module instance in a hab | Inherits from `TIGameState` (implements `CombatWeaponCarrierState`, `CombatTargetableState`). 4 distinct module-state booleans (TIHabModuleState.cs:163-198): `okay = !empty && !destroyed && !decommissioning`, `functional = completed && !destroyed && !decommissioning`, `active = functional && powered` (= `completed && !destroyed && !decommissioning && powered`), `powered` is a directly-serialized property set externally. Also: `completed = !empty && constructionCompleted`, `underConstruction = !empty && !constructionCompleted`, `empty = templateName == null || templateName == ""`. Has `moduleTemplate` (TIHabModuleTemplate, get/private set), `priorModuleTemplate` (TIHabModuleTemplate, computed via `TemplateManager.Find` with private cached `_priorModuleTemplate` field), `priorModuleTemplateName`/`priorModuleCompleted`/`priorModuleCompletionDate` (set when an upgrade starts — see TIHabModuleState.cs:537-541). Hab access via `hab` property (`= this.sector?.hab`). |
-| `TIHabState` | Station or outpost | Inherits from `TISpaceAssetState` (implements `OfficerCarrierState`). `IsModuleAllowedForHab` is `public static`; signature: `(TIFactionState faction, TIGameState location, TIHabModuleTemplate moduleTemplate, IEnumerable<TIHabModuleTemplate> existingModules = null, bool skipOnePerHabUpgradeCheckForDowngrade = false)`. Shared by player UI AND AI — patching affects all factions. Has 5 distinct module-state filters (see below): `OkayModules()`, `FunctionalModules()`, `ActiveModules()`, `UnpoweredModules()`, `PresentModules()`. Faction reference accessed via `base.faction` (inherited from TISpaceAssetState) or `ref_faction` getter override. Key fields: `tier` (int, get/private set), `habType` (HabType: Any/Base/Station, get/private set), `coreModule` (TIHabModuleState), `sectors` (List<TISectorState>), `anyCoreCompleted`, `decommissioning`, `underBombardment`, `underAssault`, `IsBase`/`IsStation` (computed bools), **`irradiated` (computed: `IsStation ? orbitState.irradiated : habSite.irradiated`)**, **`irradiatedMultiplier` (computed: `TIHabState.GetIrradiatedMultiplier(this.location)` — static helper)**. `AllowedModules(faction)` requires `!decommissioning && !underBombardment && !underAssault`. Static `IsMineSlot(sector, slot, habType)` returns true only for `habType == Base && sector == 0 && slot == 1` — the canonical mine slot location. |
+| `TIHabModuleTemplate` | Static module definition (read-only at runtime) | NO `[JsonExtensionData]` attribute - custom JSON fields silently dropped at deserialization. Inherits from `TIDataTemplate`. Key fields: `coreModule` (bool), `habType` (HabType enum: Any/Base/Station), `tier` (int 1-3), `requiredProjectName` (string, parallel to ship side), `specialRules` (List<HabModuleSpecialRule>), `specialRulesValue` (float), `weightedBuildMaterials` (ResourceCostBuilder). Computed properties: `slotsProvided` (only on coreModule: 4/12/20 for tier 1/2/3), `weaponMounts` (only on spaceCombatModule: 3/3/4 for tier 1/2/3, alien tier 3 = 3 not 4). Has `SharesUpgradePath()` method (used by BK BuildLimitPatch). `benefitsAndCostsDescription(TIFactionState faction, TIHabState hab, bool prospectiveForHab = false)` is the single builder behind all three module-info display surfaces (hab build tooltip, installed-module tooltip, research screen module preview); both `faction` and `hab` may be null (research screen passes null hab). New behaviors require DLL raw JSON parsing. |
+| `TIHabModuleState` | Live module instance in a hab | Inherits from `TIGameState` (implements `CombatWeaponCarrierState`, `CombatTargetableState`). 4 distinct module-state booleans (TIHabModuleState.cs:163-198): `okay = !empty && !destroyed && !decommissioning`, `functional = completed && !destroyed && !decommissioning`, `active = functional && powered` (= `completed && !destroyed && !decommissioning && powered`), `powered` is a directly-serialized property set externally. Also: `completed = !empty && constructionCompleted`, `underConstruction = !empty && !constructionCompleted`, `empty = templateName == null || templateName == ""`. Has `moduleTemplate` (TIHabModuleTemplate, get/private set), `priorModuleTemplate` (TIHabModuleTemplate, computed via `TemplateManager.Find` with private cached `_priorModuleTemplate` field), `priorModuleTemplateName`/`priorModuleCompleted`/`priorModuleCompletionDate` (set when an upgrade starts - see TIHabModuleState.cs:537-541). Hab access via `hab` property (`= this.sector?.hab`). |
+| `TIHabState` | Station or outpost | Inherits from `TISpaceAssetState` (implements `OfficerCarrierState`). `IsModuleAllowedForHab` is `public static`; signature: `(TIFactionState faction, TIGameState location, TIHabModuleTemplate moduleTemplate, IEnumerable<TIHabModuleTemplate> existingModules = null, bool skipOnePerHabUpgradeCheckForDowngrade = false)`. Shared by player UI AND AI - patching affects all factions. Has 5 distinct module-state filters (see below): `OkayModules()`, `FunctionalModules()`, `ActiveModules()`, `UnpoweredModules()`, `PresentModules()`. Faction reference accessed via `base.faction` (inherited from TISpaceAssetState) or `ref_faction` getter override. Key fields: `tier` (int, get/private set), `habType` (HabType: Any/Base/Station, get/private set), `coreModule` (TIHabModuleState), `sectors` (List<TISectorState>), `anyCoreCompleted`, `decommissioning`, `underBombardment`, `underAssault`, `IsBase`/`IsStation` (computed bools), **`irradiated` (computed: `IsStation ? orbitState.irradiated : habSite.irradiated`)**, **`irradiatedMultiplier` (computed: `TIHabState.GetIrradiatedMultiplier(this.location)` - static helper)**. `AllowedModules(faction)` requires `!decommissioning && !underBombardment && !underAssault`. Static `IsMineSlot(sector, slot, habType)` returns true only for `habType == Base && sector == 0 && slot == 1` - the canonical mine slot location. |
 | `TIFactionState` | Faction global state | `.habs` = all faction habs galaxy-wide. Mining patches fire for every faction every tick. |
-| `TIGameState` | **Abstract base class for ALL game-state objects** | Inherits from `TIDataClass`, implements `IEquatable<TIGameState>` and `IComparable<TIGameState>`. Decorated with `[fsObject(Converter = typeof(TIGameStateConverter))]` (FullSerializer custom converter for save/load). Has 2 stored fields: `archived` (bool, get/private set) and `ID` (GameStateID, get/set). Has 1 stored string `displayName`. Implements 29 virtual `isXxxState` properties (all default `false`, overridden by subclasses to return `true` for self-typing) and 29 virtual `ref_xxxState` properties (all default `null`, overridden by subclasses to return relevant references). Equality is by `ID`: `Equals(other) => this == other || ID.Equals(other.ID)`. Hash is `ID.GetHashCode()`. `CompareTo` delegates to `ID.CompareTo`. Has `ArchiveState(bool trigger = true)` and `DeArchiveState()` for soft-delete pattern (sets `archived` flag and fires `GameStateArchived` event). Has 8 lifecycle init virtuals: `PostGameStateCreateInit_OnCreationOnly_1`, `PostGlobalGameStateCreateInit_2`, `PostCanvasManagerCreateInit_3`, `PostInitializationInit_4`, `PostAllStartUpInit_5`, `PostVisualizerCreationInit_6`/`_7`, `PostEverythingSaveRepair_8`. Reflection-based template lookup via `GetMyTemplate()` (looks for `template` property on derived type). Cast to `TISpaceGameState` for space-located objects. **Code that takes any game-state object often type-discriminates via `isXxxState` flags rather than C# type checks** — useful pattern when patching. |
-| `TISpaceGameState` | Abstract intermediate base for space-located game states (between TIGameState and concrete subclasses like TISpaceAssetState/TIOrbitState) | **Tiny class — only 2 members**: (1) `barycenter` (TINaturalSpaceObjectState, virtual get/set) — the parent body the space object orbits around; (2) `isSpaceGameState` override returning `true`. Does NOT define `ref_naturalSpaceObject` or `habs` directly — those are on subclasses. **`ref_naturalSpaceObject` is overridden separately by TIHabState, TIHabModuleState, TISpaceFleetState, TISpaceShipState** (each with its own traversal path to the body). The `habs` collection lives on `TINaturalSpaceObjectState`, not on TISpaceGameState. Code that needs habs at a body must traverse `someState.ref_naturalSpaceObject.habs`. BK's BuildLimitPatch uses `if (location is TISpaceGameState spaceLocation) { var body = spaceLocation.ref_naturalSpaceObject; ... }` — the `is` cast is to confirm the location is a space-located state at all (not e.g. a region/nation), then ref_naturalSpaceObject (inherited from TIGameState as virtual) returns the body if the concrete type overrides it. |
-| `TISpaceObjectState` | Abstract: anything visualized in space — bodies, orbits, lagrange points, fleets, ships, habs | Inherits from `TISpaceGameState`, implements `IGameStateVisualizer`. Overrides `isSpaceObjectState` to `true` and `ref_spaceObject` to return `this`. **14 virtual orbital mechanics properties** (most subclasses delegate to template values): `semiMajorAxis_m`, `semiMajorAxis_km`, `semiMajorAxis_AU`, `ecc` (eccentricity), `inclination_Rad`, `longAscendingNode_Rad`, `argPeriapsis_Rad`, `meanAnomalyAtEpoch_Rad`, `meanLongitude_Rad`, `orbitalPeriod_s` (+_Hours/_Days/_Years), `mass_kg`, `meanRadius_m` (+_km), `epoch_JYears`, `SpatialRotation` (Quaterniond). Other key fields: `epoch_DateTime` (TIDateTime, get/protected set, [SerializeField]), `controller` (SpaceObjectController, [fsIgnore] — runtime visualizer reference), `objectType` (SpaceObjectType enum), `iconResource` (string), `modelResource` (string), `inEarthSystem` (bool, virtual). **Static math API**: `MaxDistanceBetweenTwoSpaceObjects_m`, `MinDistanceBetweenTwoSpaceObjects_m`, `AverageDistanceBetweenTwoSpaceObjects_m`, `ExactDistanceBetweenTwoSpaceObjects_m`, `FindCommonBarycenter`, `IsAroundBarycenter`, `genericSynodicPeriod_s`, `GetHohmannTimePenaltyFraction`, `GenericTransferTime_s`, `GenericTransferDeltaV_mps`, `ModifiedGenericTransferEV_kps`, `GenericTransferBoostFromEarthSurface`, `GenericTransferTime_d`, `GenericTransferTimeFromEarthsSurface_d`. **Constants**: `symbolResource = "ui/SpaceObjectSymbol"`, `GenericTransferEV_kps = 2.11f`. **Nested enum** `HabClassification { Any, Resupply, Shipyard }`. **`IsIrradiated()` is NOT defined here** — it must be on TIHabSiteState or as an extension method (called by TIHabModuleTemplate.AllowedLocation on ref_orbit/ref_habSite/ref_spaceBody/ref_lagrangePoint, but no archive file contains its definition). |
-| `TINaturalSpaceObjectState` | Abstract: planets, moons, lagrange points, asteroids — bodies habs orbit/sit on | Inherits from `TISpaceObjectState`. Overrides `isNaturalSpaceObjectState` to `true` and `ref_naturalSpaceObject` to return `this` (the body IS the natural space object). Key fields: `maxHabTier` (int, get/protected set — used by `IsModuleAllowedForHab` tier check at TIHabState.cs:923), `population` (ulong, virtual), `orbits` (`List<TIOrbitState>`, public field), `naturalObjectTemplate` (TINaturalSpaceObjectTemplate, computed). `[fsIgnore]` properties (NOT serialized to save, recomputed): `sphereOfInfluence_m`, `localBarycenterGravity_kps2`, `hillRadius_m`. **`Colonized() => population >= TemplateManager.global.colonizedSpaceObjectValue`** and **`Populous() => population >= TemplateManager.global.populousSpaceObjectValue`** — thresholds are tunable via `TIGlobalValuesTemplate` JSON, NOT hardcoded (the often-cited "10K/50K" values are current TI vanilla data, not constants). Provides the default `habs` collection: `habs => stationsInOrbit` (virtual, default impl) where `stationsInOrbit => orbits.SelectMany(o => o.stationsInOrbit).ToList()` — **per-call allocation** (BK iterations should cache or be wary). **Subclasses can override `habs`** — see TISpaceBodyState. Constants: `maxMaxHabTier = 3`. |
-| `TISpaceBodyState` | Concrete: planets, moons, the Sun (anything with surface) | Inherits from `TINaturalSpaceObjectState`. Overrides `isSpaceBodyState` to `true`. **Overrides `habs` to include surface bases**: `habs => base.stationsInOrbit.Union(this.surfaceBases).ToList()`. So when BK iterates `body.habs` and the body is a planet/moon, surface bases ARE included automatically — no bug. Also overrides `habsInSystem` to include satellites' habs recursively. Key fields: `habSites` (TIHabSiteState[], potential locations for surface bases), `naturalSatellites` (List<TISpaceBodyState>, e.g. moons), `lagrangePoints` (List<TILagrangePointState>), `currentTilt` (Quaterniond, `[fsIgnore]`), `solarMirrorBonus` (Dictionary<TIFactionState, int>). Computed: `atmosphere` (Atmosphere enum: Trace/Thin/Standard/Thick/Massive — read from template), `surfaceBases` (= `habSites.Where(hasPlannedOrOperatingBase).Select(hab).ToList()`), **`irradiated` (= `template.irradiated`)**, **`irradiatedMultiplier` (float, = `template.irradiatedMultiplier`)** — both used by `IsIrradiated()` and BuildMaterials cost calculations. The `atmosphere == Atmosphere.Massive` check is what `Requires_GasGiant_Orbit` AllowedLocation gate validates. |
-| `TIOrbitState` | Concrete: an orbital position around a body | Inherits from `TISpaceGameState`, implements `ITransferTarget`. Overrides `isOrbitState` to `true` and `ref_orbit` to return `this`. **Public fields BK and AllowedLocation use**: `assetsInOrbit` (List<TISpaceAssetState>, all assets here), `interfaceOrbit` (bool, computed at init from template OR if any higher orbit is interface — see InitWithTemplate), `isEarthLEO` (bool, `[fsIgnore]`, recomputed from template), `alienTerritory` (bool, `[fsIgnore]`), `solarMultiplier` (float, `[fsIgnore]`), `amat_ugpy` (float, virtual property — antimatter ug per year), **`irradiated` (virtual bool, returns `template.irradiated`) — this is what `IsIrradiated()` extension method dispatches to for orbits**. Computed: `stationsInOrbit` (`List<TIHabState>`, **per-call allocation**: `assetsInOrbit.Where(x => x.isHabState).Select(x => x.ref_hab).ToList()`), `fleetsInOrbit`, `altitude_m`/`altitude_km` (`semiMajorAxis_m - barycenter.meanRadius_m`). |
-| `TISpaceAssetState` | Abstract: faction-owned things in space (habs, fleets, ships) | Inherits from `TISpaceObjectState`, implements `ITransferTarget`. Overrides `isSpaceAssetState` to `true`. Defines core ownership and combat fields: `faction` (TIFactionState, get/protected set — **THIS is where TIHabState.faction is inherited from**), `orbitState` (TIOrbitState, get/protected set), and 2 ABSTRACT methods all subclasses must implement: `bool IsAlien()` and `float CombatRange_km()`. Override of `ref_faction` returns `this.faction`. Direct subclasses: TIHabState, TISpaceFleetState, TISpaceShipState. |
-| `TISectorState` | A sector within a hab (containing a list of modules) | Inherits from `TIGameState`. Has `faction` (TIFactionState, get/private set — duplicates hab's faction for fast lookup). Overrides 8 ref_* properties: `ref_faction`, `ref_hab`, `ref_habSite`, `ref_orbit`, `ref_spaceBody`, `ref_spaceObject`, `ref_naturalSpaceObject`, `ref_spaceAsset` (all delegate via `this.hab` chain). **`ref_naturalSpaceObject` checks IsBase**: returns `hab.barycenter` for stations, `hab.ref_spaceBody` for bases — interesting asymmetry. Public fields: `hab` (TIHabState back-reference), `habModules` (List<TIHabModuleState> — what BK MiningPatch iterates), `slots` (int). Has its own `OkayModules`/`FunctionalModules`/`ActiveModules`/`UnpoweredModules`/`AllModules`/`CompletedModules`/`ActiveCombatModules` filter methods — **NOT cached** (each call allocates). **`UnpoweredModules() = OkayModules() where !powered`** (different from TIHabState's `UnpoweredModules() = FunctionalModules() where !powered`). Has `active` (bool), `coreSector` (bool), `numFunctionalModules` (int) computed properties. |
-| `TIHabSiteState` | A surface location on a body where a base CAN be built (planned or operating) | Inherits from `TISpaceGameState` directly (NOT through TISpaceObjectState — surface sites aren't space objects). Overrides `isHabSiteState` to `true`, plus 7 ref_* properties: `ref_faction`, `ref_factions` (multi-faction support — habs can be shared, e.g. LEO), `ref_hab`, `ref_spaceBody`, `ref_habSite`, `ref_spaceObject`, `ref_naturalSpaceObject` (= `this.ref_spaceBody`). Key fields: `parentBody` (TISpaceBodyState — the body this site is on), `hab` (TIHabState — null until base founded), `landedFleets` (List<TISpaceFleetState>), `latitude`/`longitude` (float, default -1f), `pendingHab` (bool), `solarMultiplier` (float, [fsIgnore]), `miningProfile` (TIMiningProfileTemplate, [fsIgnore]). Resource production fields per type: `water_day`, `volatiles_day`, `metals_day`, `nobles_day`, `fissiles_day` (float). **Irradiation properties (delegate to parentBody)**: `irradiated` (bool, = `parentBody.irradiated`), `irradiatedValue` (float, = `parentBody.irradiatedMultiplier`). Computed: `hasPlannedOrOperatingBase` (= `hab != null && hab.PresentModules().Count > 0`). Methods: `MinDeltaVToLaunch_kps`, `DeltaVToLandFromInterface_kps`, `MarkPendingHab`, `FoundHab`, `GetDailyProduction`, `GetMonthlyProduction`, `GetHabSiteMin/Max/ExpectedProductivity_day/_month`, `LandFleet`, `LaunchFleet`, etc. **Nested static class `Statistics`** with `SpaceResourceGrade` enum (7 values: None, Awful, Poor, BelowAverage, AboveAverage, Good, Great). |
-| `TILagrangePointState` | A Lagrange point (L1-L5) of a body — concrete type | Inherits from `TINaturalSpaceObjectState`. Overrides `isLagrangePointState` to `true`, plus `ref_lagrangePoint` and `ref_naturalSpaceObject` returning `this`. Also overrides `ref_spaceBody` to return `secondaryObject` (the body this lagrange point is associated with — e.g., Earth's L1 has secondaryObject = Earth). Overrides `objectType` to return `SpaceObjectType.LagrangePoint`. Overrides `mass_kg` to return `secondaryObject.mass_kg / 10000000.0` (synthetic — for orbital math purposes). Hides parent template via `new` keyword: `template => GetMyTemplate<TINavigableTemplate>()`. Key fields: `secondaryObject` (TISpaceBodyState, get/private set), `lagrangeValue` (LagrangeValue enum from template, computed). **Overrides `population`**: returns sum of `crew` across all non-alien stations in orbit (synthetic population from station crews). **Overrides `Colonized()` and `Populous()`** to return `true` if related sun-orbiting object is Earth, OR base check passes — meaning Earth's lagrange points always pass the colonized/populous gates regardless of actual population. Lifecycle: `PostGameStateCreateInit_OnCreationOnly_1` resolves secondaryObject from template; `PostGlobalGameStateCreateInit_2` computes orbital period and Hill radius (uses `Mathd.Max(sphereOfInfluence_m, hillRadius_m / 3.0)` for Hill radius). |
+| `TIGameState` | **Abstract base class for ALL game-state objects** | Inherits from `TIDataClass`, implements `IEquatable<TIGameState>` and `IComparable<TIGameState>`. Decorated with `[fsObject(Converter = typeof(TIGameStateConverter))]` (FullSerializer custom converter for save/load). Has 2 stored fields: `archived` (bool, get/private set) and `ID` (GameStateID, get/set). Has 1 stored string `displayName`. Implements 29 virtual `isXxxState` properties (all default `false`, overridden by subclasses to return `true` for self-typing) and 29 virtual `ref_xxxState` properties (all default `null`, overridden by subclasses to return relevant references). Equality is by `ID`: `Equals(other) => this == other || ID.Equals(other.ID)`. Hash is `ID.GetHashCode()`. `CompareTo` delegates to `ID.CompareTo`. Has `ArchiveState(bool trigger = true)` and `DeArchiveState()` for soft-delete pattern (sets `archived` flag and fires `GameStateArchived` event). Has 8 lifecycle init virtuals: `PostGameStateCreateInit_OnCreationOnly_1`, `PostGlobalGameStateCreateInit_2`, `PostCanvasManagerCreateInit_3`, `PostInitializationInit_4`, `PostAllStartUpInit_5`, `PostVisualizerCreationInit_6`/`_7`, `PostEverythingSaveRepair_8`. Reflection-based template lookup via `GetMyTemplate()` (looks for `template` property on derived type). Cast to `TISpaceGameState` for space-located objects. **Code that takes any game-state object often type-discriminates via `isXxxState` flags rather than C# type checks** - useful pattern when patching. |
+| `TISpaceGameState` | Abstract intermediate base for space-located game states (between TIGameState and concrete subclasses like TISpaceAssetState/TIOrbitState) | **Tiny class - only 2 members**: (1) `barycenter` (TINaturalSpaceObjectState, virtual get/set) - the parent body the space object orbits around; (2) `isSpaceGameState` override returning `true`. Does NOT define `ref_naturalSpaceObject` or `habs` directly - those are on subclasses. **`ref_naturalSpaceObject` is overridden separately by TIHabState, TIHabModuleState, TISpaceFleetState, TISpaceShipState** (each with its own traversal path to the body). The `habs` collection lives on `TINaturalSpaceObjectState`, not on TISpaceGameState. Code that needs habs at a body must traverse `someState.ref_naturalSpaceObject.habs`. BK's BuildLimitPatch uses `if (location is TISpaceGameState spaceLocation) { var body = spaceLocation.ref_naturalSpaceObject; ... }` - the `is` cast is to confirm the location is a space-located state at all (not e.g. a region/nation), then ref_naturalSpaceObject (inherited from TIGameState as virtual) returns the body if the concrete type overrides it. |
+| `TISpaceObjectState` | Abstract: anything visualized in space - bodies, orbits, lagrange points, fleets, ships, habs | Inherits from `TISpaceGameState`, implements `IGameStateVisualizer`. Overrides `isSpaceObjectState` to `true` and `ref_spaceObject` to return `this`. **14 virtual orbital mechanics properties** (most subclasses delegate to template values): `semiMajorAxis_m`, `semiMajorAxis_km`, `semiMajorAxis_AU`, `ecc` (eccentricity), `inclination_Rad`, `longAscendingNode_Rad`, `argPeriapsis_Rad`, `meanAnomalyAtEpoch_Rad`, `meanLongitude_Rad`, `orbitalPeriod_s` (+_Hours/_Days/_Years), `mass_kg`, `meanRadius_m` (+_km), `epoch_JYears`, `SpatialRotation` (Quaterniond). Other key fields: `epoch_DateTime` (TIDateTime, get/protected set, [SerializeField]), `controller` (SpaceObjectController, [fsIgnore] - runtime visualizer reference), `objectType` (SpaceObjectType enum), `iconResource` (string), `modelResource` (string), `inEarthSystem` (bool, virtual). **Static math API**: `MaxDistanceBetweenTwoSpaceObjects_m`, `MinDistanceBetweenTwoSpaceObjects_m`, `AverageDistanceBetweenTwoSpaceObjects_m`, `ExactDistanceBetweenTwoSpaceObjects_m`, `FindCommonBarycenter`, `IsAroundBarycenter`, `genericSynodicPeriod_s`, `GetHohmannTimePenaltyFraction`, `GenericTransferTime_s`, `GenericTransferDeltaV_mps`, `ModifiedGenericTransferEV_kps`, `GenericTransferBoostFromEarthSurface`, `GenericTransferTime_d`, `GenericTransferTimeFromEarthsSurface_d`. **Constants**: `symbolResource = "ui/SpaceObjectSymbol"`, `GenericTransferEV_kps = 2.11f`. **Nested enum** `HabClassification { Any, Resupply, Shipyard }`. **`IsIrradiated()` is NOT defined here** - it must be on TIHabSiteState or as an extension method (called by TIHabModuleTemplate.AllowedLocation on ref_orbit/ref_habSite/ref_spaceBody/ref_lagrangePoint, but no archive file contains its definition). |
+| `TINaturalSpaceObjectState` | Abstract: planets, moons, lagrange points, asteroids - bodies habs orbit/sit on | Inherits from `TISpaceObjectState`. Overrides `isNaturalSpaceObjectState` to `true` and `ref_naturalSpaceObject` to return `this` (the body IS the natural space object). Key fields: `maxHabTier` (int, get/protected set - used by `IsModuleAllowedForHab` tier check at TIHabState.cs:923), `population` (ulong, virtual), `orbits` (`List<TIOrbitState>`, public field), `naturalObjectTemplate` (TINaturalSpaceObjectTemplate, computed). `[fsIgnore]` properties (NOT serialized to save, recomputed): `sphereOfInfluence_m`, `localBarycenterGravity_kps2`, `hillRadius_m`. **`Colonized() => population >= TemplateManager.global.colonizedSpaceObjectValue`** and **`Populous() => population >= TemplateManager.global.populousSpaceObjectValue`** - thresholds are tunable via `TIGlobalValuesTemplate` JSON, NOT hardcoded (the often-cited "10K/50K" values are current TI vanilla data, not constants). Provides the default `habs` collection: `habs => stationsInOrbit` (virtual, default impl) where `stationsInOrbit => orbits.SelectMany(o => o.stationsInOrbit).ToList()` - **per-call allocation** (BK iterations should cache or be wary). **Subclasses can override `habs`** - see TISpaceBodyState. Constants: `maxMaxHabTier = 3`. |
+| `TISpaceBodyState` | Concrete: planets, moons, the Sun (anything with surface) | Inherits from `TINaturalSpaceObjectState`. Overrides `isSpaceBodyState` to `true`. **Overrides `habs` to include surface bases**: `habs => base.stationsInOrbit.Union(this.surfaceBases).ToList()`. So when BK iterates `body.habs` and the body is a planet/moon, surface bases ARE included automatically - no bug. Also overrides `habsInSystem` to include satellites' habs recursively. Key fields: `habSites` (TIHabSiteState[], potential locations for surface bases), `naturalSatellites` (List<TISpaceBodyState>, e.g. moons), `lagrangePoints` (List<TILagrangePointState>), `currentTilt` (Quaterniond, `[fsIgnore]`), `solarMirrorBonus` (Dictionary<TIFactionState, int>). Computed: `atmosphere` (Atmosphere enum: Trace/Thin/Standard/Thick/Massive - read from template), `surfaceBases` (= `habSites.Where(hasPlannedOrOperatingBase).Select(hab).ToList()`), **`irradiated` (= `template.irradiated`)**, **`irradiatedMultiplier` (float, = `template.irradiatedMultiplier`)** - both used by `IsIrradiated()` and BuildMaterials cost calculations. The `atmosphere == Atmosphere.Massive` check is what `Requires_GasGiant_Orbit` AllowedLocation gate validates. |
+| `TIOrbitState` | Concrete: an orbital position around a body | Inherits from `TISpaceGameState`, implements `ITransferTarget`. Overrides `isOrbitState` to `true` and `ref_orbit` to return `this`. **Public fields BK and AllowedLocation use**: `assetsInOrbit` (List<TISpaceAssetState>, all assets here), `interfaceOrbit` (bool, computed at init from template OR if any higher orbit is interface - see InitWithTemplate), `isEarthLEO` (bool, `[fsIgnore]`, recomputed from template), `alienTerritory` (bool, `[fsIgnore]`), `solarMultiplier` (float, `[fsIgnore]`), `amat_ugpy` (float, virtual property - antimatter ug per year), **`irradiated` (virtual bool, returns `template.irradiated`) - this is what `IsIrradiated()` extension method dispatches to for orbits**. Computed: `stationsInOrbit` (`List<TIHabState>`, **per-call allocation**: `assetsInOrbit.Where(x => x.isHabState).Select(x => x.ref_hab).ToList()`), `fleetsInOrbit`, `altitude_m`/`altitude_km` (`semiMajorAxis_m - barycenter.meanRadius_m`). |
+| `TISpaceAssetState` | Abstract: faction-owned things in space (habs, fleets, ships) | Inherits from `TISpaceObjectState`, implements `ITransferTarget`. Overrides `isSpaceAssetState` to `true`. Defines core ownership and combat fields: `faction` (TIFactionState, get/protected set - **THIS is where TIHabState.faction is inherited from**), `orbitState` (TIOrbitState, get/protected set), and 2 ABSTRACT methods all subclasses must implement: `bool IsAlien()` and `float CombatRange_km()`. Override of `ref_faction` returns `this.faction`. Direct subclasses: TIHabState, TISpaceFleetState, TISpaceShipState. |
+| `TISectorState` | A sector within a hab (containing a list of modules) | Inherits from `TIGameState`. Has `faction` (TIFactionState, get/private set - duplicates hab's faction for fast lookup). Overrides 8 ref_* properties: `ref_faction`, `ref_hab`, `ref_habSite`, `ref_orbit`, `ref_spaceBody`, `ref_spaceObject`, `ref_naturalSpaceObject`, `ref_spaceAsset` (all delegate via `this.hab` chain). **`ref_naturalSpaceObject` checks IsBase**: returns `hab.barycenter` for stations, `hab.ref_spaceBody` for bases - interesting asymmetry. Public fields: `hab` (TIHabState back-reference), `habModules` (List<TIHabModuleState> - what BK MiningPatch iterates), `slots` (int). Has its own `OkayModules`/`FunctionalModules`/`ActiveModules`/`UnpoweredModules`/`AllModules`/`CompletedModules`/`ActiveCombatModules` filter methods - **NOT cached** (each call allocates). **`UnpoweredModules() = OkayModules() where !powered`** (different from TIHabState's `UnpoweredModules() = FunctionalModules() where !powered`). Has `active` (bool), `coreSector` (bool), `numFunctionalModules` (int) computed properties. |
+| `TIHabSiteState` | A surface location on a body where a base CAN be built (planned or operating) | Inherits from `TISpaceGameState` directly (NOT through TISpaceObjectState - surface sites aren't space objects). Overrides `isHabSiteState` to `true`, plus 7 ref_* properties: `ref_faction`, `ref_factions` (multi-faction support - habs can be shared, e.g. LEO), `ref_hab`, `ref_spaceBody`, `ref_habSite`, `ref_spaceObject`, `ref_naturalSpaceObject` (= `this.ref_spaceBody`). Key fields: `parentBody` (TISpaceBodyState - the body this site is on), `hab` (TIHabState - null until base founded), `landedFleets` (List<TISpaceFleetState>), `latitude`/`longitude` (float, default -1f), `pendingHab` (bool), `solarMultiplier` (float, [fsIgnore]), `miningProfile` (TIMiningProfileTemplate, [fsIgnore]). Resource production fields per type: `water_day`, `volatiles_day`, `metals_day`, `nobles_day`, `fissiles_day` (float). **Irradiation properties (delegate to parentBody)**: `irradiated` (bool, = `parentBody.irradiated`), `irradiatedValue` (float, = `parentBody.irradiatedMultiplier`). Computed: `hasPlannedOrOperatingBase` (= `hab != null && hab.PresentModules().Count > 0`). Methods: `MinDeltaVToLaunch_kps`, `DeltaVToLandFromInterface_kps`, `MarkPendingHab`, `FoundHab`, `GetDailyProduction`, `GetMonthlyProduction`, `GetHabSiteMin/Max/ExpectedProductivity_day/_month`, `LandFleet`, `LaunchFleet`, etc. **Nested static class `Statistics`** with `SpaceResourceGrade` enum (7 values: None, Awful, Poor, BelowAverage, AboveAverage, Good, Great). |
+| `TILagrangePointState` | A Lagrange point (L1-L5) of a body - concrete type | Inherits from `TINaturalSpaceObjectState`. Overrides `isLagrangePointState` to `true`, plus `ref_lagrangePoint` and `ref_naturalSpaceObject` returning `this`. Also overrides `ref_spaceBody` to return `secondaryObject` (the body this lagrange point is associated with - e.g., Earth's L1 has secondaryObject = Earth). Overrides `objectType` to return `SpaceObjectType.LagrangePoint`. Overrides `mass_kg` to return `secondaryObject.mass_kg / 10000000.0` (synthetic - for orbital math purposes). Hides parent template via `new` keyword: `template => GetMyTemplate<TINavigableTemplate>()`. Key fields: `secondaryObject` (TISpaceBodyState, get/private set), `lagrangeValue` (LagrangeValue enum from template, computed). **Overrides `population`**: returns sum of `crew` across all non-alien stations in orbit (synthetic population from station crews). **Overrides `Colonized()` and `Populous()`** to return `true` if related sun-orbiting object is Earth, OR base check passes - meaning Earth's lagrange points always pass the colonized/populous gates regardless of actual population. Lifecycle: `PostGameStateCreateInit_OnCreationOnly_1` resolves secondaryObject from template; `PostGlobalGameStateCreateInit_2` computes orbital period and Hill radius (uses `Mathd.Max(sphereOfInfluence_m, hillRadius_m / 3.0)` for Hill radius). |
 
 **Cross-impact: 5 module-state filters on TIHabState**
 
@@ -132,36 +132,36 @@ TI distinguishes 5 separate module states, each with its own filter method and c
 |---|---|---|---|---|
 | `OkayModules()` | `okay` | `!empty && !destroyed && !decommissioning` | **Per-frame cached** | Build limits (F1/F2): includes structurally-present modules even if under construction |
 | `FunctionalModules()` | `functional` | `completed && !destroyed && !decommissioning` | **Per-frame cached** | Modules that exist as completed structures regardless of power state |
-| `ActiveModules()` | `active` | `functional && powered` (= `completed && !destroyed && !decommissioning && powered`) | **NOT cached** — allocates new List each call | Bonuses (F3/F4): unpowered = no bonus. **BK's MiningPatch deliberately avoids this** to prevent per-call List allocation, iterating `sectors → habModules` directly. |
+| `ActiveModules()` | `active` | `functional && powered` (= `completed && !destroyed && !decommissioning && powered`) | **NOT cached** - allocates new List each call | Bonuses (F3/F4): unpowered = no bonus. **BK's MiningPatch deliberately avoids this** to prevent per-call List allocation, iterating `sectors → habModules` directly. |
 | `UnpoweredModules()` | derived | `FunctionalModules()` where `!powered` | NOT cached (derives from FunctionalModules's cache) | Identifies functional-but-unpowered modules |
-| `PresentModules()` | `present` | `!empty && !destroyed` (broader than okay — INCLUDES decommissioning) | NOT cached | Used by `TIHabSiteState.hasPlannedOrOperatingBase` to detect whether a base has ANY non-empty non-destroyed modules. Includes decommissioning modules (which `okay` excludes). |
+| `PresentModules()` | `present` | `!empty && !destroyed` (broader than okay - INCLUDES decommissioning) | NOT cached | Used by `TIHabSiteState.hasPlannedOrOperatingBase` to detect whether a base has ANY non-empty non-destroyed modules. Includes decommissioning modules (which `okay` excludes). |
 
 Where the underlying booleans are:
 - `empty = templateName == null || templateName == ""` (TIHabModuleState.cs:133-138)
-- `present = !empty && !destroyed` (TIHabModuleState.cs:203-208 — broader than okay; INCLUDES decommissioning)
+- `present = !empty && !destroyed` (TIHabModuleState.cs:203-208 - broader than okay; INCLUDES decommissioning)
 - `completed = !empty && constructionCompleted`
 - `underConstruction = !empty && !constructionCompleted` (mutually exclusive with `completed`)
 - `powered`, `destroyed`, `decommissioning`, `constructionCompleted` are all directly-serialized `bool` properties
 
-**TIHabState filter scope (TIHabState.cs:317-323)**: All 4 TIHabState filter methods iterate `activeSectors`, NOT all `sectors`. `activeSectors` is a per-call computed property: `this.sectors.Where(x => x.active).ToList()`. Inactive sectors (those with `active == false`) and their modules are excluded from every TIHabState filter result. **BK's MiningPatch iterates `hab.sectors` directly, NOT `hab.activeSectors`** — this is a deliberate optimization (skips the per-call activeSectors allocation) but means BK includes modules in inactive sectors when computing mining bonus. In current TI gameplay this rarely matters (sectors typically stay active throughout a hab's lifetime), but the divergence is worth knowing if patching anything sector-aware.
+**TIHabState filter scope (TIHabState.cs:317-323)**: All 4 TIHabState filter methods iterate `activeSectors`, NOT all `sectors`. `activeSectors` is a per-call computed property: `this.sectors.Where(x => x.active).ToList()`. Inactive sectors (those with `active == false`) and their modules are excluded from every TIHabState filter result. **BK's MiningPatch iterates `hab.sectors` directly, NOT `hab.activeSectors`** - this is a deliberate optimization (skips the per-call activeSectors allocation) but means BK includes modules in inactive sectors when computing mining bonus. In current TI gameplay this rarely matters (sectors typically stay active throughout a hab's lifetime), but the divergence is worth knowing if patching anything sector-aware.
 
 **TISectorState ALSO has filter methods, with two important differences from TIHabState's**:
-1. **None are cached** — TISectorState's `OkayModules`/`FunctionalModules`/`ActiveModules`/`AllModules`/`CompletedModules` all allocate fresh lists per call (TISectorState.cs:174-217). Only TIHabState's OkayModules and FunctionalModules have per-frame caching.
+1. **None are cached** - TISectorState's `OkayModules`/`FunctionalModules`/`ActiveModules`/`AllModules`/`CompletedModules` all allocate fresh lists per call (TISectorState.cs:174-217). Only TIHabState's OkayModules and FunctionalModules have per-frame caching.
 2. **Different `UnpoweredModules` semantic**:
-   - `TIHabState.UnpoweredModules() = FunctionalModules() where !powered` — completed-but-unpowered modules (excludes under-construction)
-   - `TISectorState.UnpoweredModules() = OkayModules() where !powered` — okay-but-unpowered (INCLUDES under-construction)
+   - `TIHabState.UnpoweredModules() = FunctionalModules() where !powered` - completed-but-unpowered modules (excludes under-construction)
+   - `TISectorState.UnpoweredModules() = OkayModules() where !powered` - okay-but-unpowered (INCLUDES under-construction)
    
    This subtle asymmetry could matter for sector-level UI displays vs hab-level resource calculations. TISectorState.cs:204-209 vs TIHabState.cs:189-198.
 
 TISectorState also defines `ActiveCombatModules()` (= `ActiveModules where x.moduleTemplate.spaceCombatModule`) for combat-eligible sector modules.
 
-**Tier-aware counting**: BK's `BuildLimitPatch.EffectiveTier(mod)` returns `max(mod.tier, mod.priorModuleTemplate?.tier)` so in-progress upgrades count at their target (higher) tier. Note `priorModuleTemplate` is computed via `TemplateManager.Find<TIHabModuleTemplate>(priorModuleTemplateName)` — it's not stored as a direct reference and may incur a lookup. The fields `priorModuleTemplateName`, `priorModuleCompleted`, `priorModuleCompletionDate` are set when an upgrade begins (TIHabModuleState.cs:537-541). Combined with `SharesUpgradePath()` family detection: T1 limit counts all tiers in the upgrade chain, T2 counts T2+T3 only, T3 counts T3 only.
+**Tier-aware counting**: BK's `BuildLimitPatch.EffectiveTier(mod)` returns `max(mod.tier, mod.priorModuleTemplate?.tier)` so in-progress upgrades count at their target (higher) tier. Note `priorModuleTemplate` is computed via `TemplateManager.Find<TIHabModuleTemplate>(priorModuleTemplateName)` - it's not stored as a direct reference and may incur a lookup. The fields `priorModuleTemplateName`, `priorModuleCompleted`, `priorModuleCompletionDate` are set when an upgrade begins (TIHabModuleState.cs:537-541). Combined with `SharesUpgradePath()` family detection: T1 limit counts all tiers in the upgrade chain, T2 counts T2+T3 only, T3 counts T3 only.
 
-### BK's Hab Patches — Implementation Reference
+### BK's Hab Patches - Implementation Reference
 
-BK extends hab module behavior via two Postfix patches that read custom JSON fields side-loaded by `ConfigReader`. **None of BK's hab logic touches vanilla `specialRules`** — BK uses its own custom field schema entirely.
+BK extends hab module behavior via two Postfix patches that read custom JSON fields side-loaded by `ConfigReader`. **None of BK's hab logic touches vanilla `specialRules`** - BK uses its own custom field schema entirely.
 
-#### Vanilla `IsModuleAllowedForHab` base logic (TIHabState.cs:866-924) — what BK narrows
+#### Vanilla `IsModuleAllowedForHab` base logic (TIHabState.cs:866-924) - what BK narrows
 
 The Postfix BK patches runs AFTER this static method has already returned a result. Vanilla checks (in order, AND'd together for a `true` result):
 
@@ -172,10 +172,10 @@ The Postfix BK patches runs AFTER this static method has already returned a resu
    - Else for Station type: `faction.MaxStationTier`
 3. **Core upgrade check**: For core modules, `tier > num` (must upgrade UP, not down at same tier)
 4. **One-per-hab check**: If `moduleTemplate.onePerHab`, search existing modules for `SharesUpgradePath(moduleTemplate)`. If found and `tihabModuleTemplate2.tier >= moduleTemplate.tier`, returns false (unless `skipOnePerHabUpgradeCheckForDowngrade=true`)
-5. **Hab type match**: `moduleTemplate.IsForHabType(habType)` — habType derived from `(location.ref_habSite != null) ? Base : Station`
+5. **Hab type match**: `moduleTemplate.IsForHabType(habType)` - habType derived from `(location.ref_habSite != null) ? Base : Station`
 6. **Automated match**: `moduleTemplate.automated == coreModule.automated` (the new module's automation flag must match the core's)
-7. **Project gate**: `moduleTemplate.FactionCanBuild(faction)` — hab-side has different semantics from ship side: includes `noBuild` short-circuit, `EverAllowedForFaction` check (alien/human module-faction match enforced), per-frame caching, and treats null requiredProject as unlocked even for alien factions. See §2 requiredProjectName Semantics for the comparison table.
-8. **Location gate**: `moduleTemplate.AllowedLocation(location, hab)` — checks habType vs location (Base requires habSite, Station requires orbit) plus these specialRules:
+7. **Project gate**: `moduleTemplate.FactionCanBuild(faction)` - hab-side has different semantics from ship side: includes `noBuild` short-circuit, `EverAllowedForFaction` check (alien/human module-faction match enforced), per-frame caching, and treats null requiredProject as unlocked even for alien factions. See §2 requiredProjectName Semantics for the comparison table.
+8. **Location gate**: `moduleTemplate.AllowedLocation(location, hab)` - checks habType vs location (Base requires habSite, Station requires orbit) plus these specialRules:
    - `EarthLEOOnly` → must be `habLocation.ref_orbit.isEarthLEO`
    - `Requires_Colonized_Body` → calls `ref_naturalSpaceObject.Colonized()` (`population >= TemplateManager.global.colonizedSpaceObjectValue`; vanilla value ≈ 10K)
    - `Requires_Inhabited_Body` → calls `ref_naturalSpaceObject.Populous()` (`population >= TemplateManager.global.populousSpaceObjectValue`; vanilla value ≈ 50K)
@@ -197,11 +197,11 @@ The Postfix BK patches runs AFTER this static method has already returned a resu
 
 `IsModuleAllowedForThisHab(faction, moduleTemplate, downgrading)` is an instance method that delegates to the static version with `existingModules=null`.
 
-`AllowedModules(faction)` returns full list — but only if `!decommissioning && !underBombardment && !underAssault`. Hab under attack or being torn down has empty allowed list.
+`AllowedModules(faction)` returns full list - but only if `!decommissioning && !underBombardment && !underAssault`. Hab under attack or being torn down has empty allowed list.
 
 #### BK's BuildLimitPatch (Postfix narrowing only)
 
-**ConfigReader** (`ConfigReader.cs`): At mod load, walks up one level from BK's mod folder (`modEntry.Path`) to resolve `Mods/Enabled/`, then iterates **every sibling mod folder** looking for a `TIHabModuleTemplate.json` file. Parses each found file as a `JArray` via Newtonsoft, builds a `dataName → HabModuleConfig` dictionary keyed with `StringComparer.Ordinal` (locale-independent, faster). Custom fields read per entry:
+**ConfigReader** (`ConfigReader.cs`, consumed by BuildLimitPatch, MiningPatch, HabDescriptionPatch): At mod load, walks up one level from BK's mod folder (`modEntry.Path`) to resolve `Mods/Enabled/`, then iterates **every sibling mod folder** looking for a `TIHabModuleTemplate.json` file. Parses each found file as a `JArray` via Newtonsoft, builds a `dataName → HabModuleConfig` dictionary keyed with `StringComparer.Ordinal` (locale-independent, faster). Custom fields read per entry:
 
 | Field | Type | Purpose |
 |---|---|---|
@@ -210,9 +210,13 @@ The Postfix BK patches runs AFTER this static method has already returned a resu
 | `miningBonus` | int? | % multiplier added to mining yield per active instance (cumulative) |
 | `miningCapBonus` | int? | Adds to safe mine network size cap per active instance |
 
-Fields are nullable (`int?`) — absent fields are not configured (silent, expected because most mods won't set most fields). Wrong type → warning logged and ignored. Negative value → warning logged and ignored. **Last mod wins on collision** for individual fields (standard load-order behavior); BK uses fetch-or-create so later mods can override individual fields without nuking prior fields on the same `dataName`. Multiple mods can therefore extend the same module's config additively as long as they don't conflict on individual fields.
+Fields are nullable (`int?`) - absent fields are not configured (silent, expected because most mods won't set most fields). Wrong type → warning logged and ignored. Negative value → warning logged and ignored. **Last mod wins on collision** for individual fields (standard load-order behavior); BK uses fetch-or-create so later mods can override individual fields without nuking prior fields on the same `dataName`. Multiple mods can therefore extend the same module's config additively as long as they don't conflict on individual fields.
 
 **Why the side-loader pattern**: `TIHabModuleTemplate` lacks `[JsonExtensionData]`, so TI's JSON loader silently drops unknown custom fields at deserialization. BK side-loads its own fields outside TI's loader, keeping vanilla TI's deserialization unmodified.
+
+**`TIHabModuleTemplate.MonthlyResourceIncome(FactionResource, TIGameState location = null, TIFactionState faction = null)`**: For Water, Volatiles, Metals, NobleMetals, and Fissiles, returns 0 when `location == null` (the mining component is site-dependent). Antimatter and Exotics have no such guard and return their flat income regardless. The research screen module preview calls the description builder with a null hab, so station flat material incomes are invisible there in vanilla; BK's `HabDescriptionPatch` splices them back in for Station modules.
+
+**`HabitatsScreenController.UpdateModulePreviewText`**: Builds the Build Modules side panel as an icon grid from a local `List<IncomeEntry>` (private nested type) populated inline and pushed into `ResourceGridItemController` cells before the method returns. Not extensible by postfix; adding entries would require re-sizing and re-populating the grid or a transpiler. The list-item hover tooltip (`HabModuleListItem.SetTooltipText`) carries the full text detail for the same modules via `benefitsAndCostsDescription`, so the grid is left vanilla.
 
 **BuildLimitPatch** (`BuildLimitPatch.cs`): Postfix on `TIHabState.IsModuleAllowedForHab`. Enforces `bodyBuildLimit`/`factionBuildLimit` with full tier cascade semantics:
 - A T1 limit of N means "at most N modules in this family at EffectiveTier ≥ T1 on this body"
@@ -221,37 +225,37 @@ Fields are nullable (`int?`) — absent fields are not configured (silent, expec
 - Upgrades only check tiers ≥ targetTier (lower-tier total caps don't re-fire on upgrades since count doesn't increase)
 - The module being upgraded is excluded from faction counts (so 1-per-body faction caps don't block upgrades)
 - Body counts include ALL family modules regardless of ownership; faction counts include only this faction's modules
-- `EffectiveTier(mod)` returns max of current tier and prior tier — in-progress transitions count at higher tier until complete
+- `EffectiveTier(mod)` returns max of current tier and prior tier - in-progress transitions count at higher tier until complete
 - Only ever NARROWS the base game's result (sets `__result = false`); never permits a denied module
 - Skips alien-faction habs
 
 **MiningBonusPatch** (`MiningPatch.cs`): Postfix on `TIFactionState.GetCurrentMiningMultiplierFromOrgsAndEffects`. Iterates `faction.habs` → `hab.sectors` → `sector.habModules`, sums `miningBonus` (integer percentage points) from each ACTIVE module's config, divides by 100 to convert to multiplier delta, adds to `__result`. Uses direct iteration to avoid `hab.ActiveModules()`'s per-call List allocation. The `resource` parameter is accepted for Harmony binding but the bonus is currently applied uniformly to all resource types.
 
-**MiningCapBonusPatch** (`MiningPatch.cs`): Postfix on `TIFactionState.SafeMineNextworkSize` getter (using `MethodType.Getter` to disambiguate property getter from setter). Same iteration pattern as MiningBonusPatch; sums `miningCapBonus` raw int (no /100 conversion — it's added directly to the network size cap). Uses `nameof(TIFactionState.SafeMineNextworkSize)` so the patch fails to compile (intentional early warning) if TI ever fixes the typo upstream.
+**MiningCapBonusPatch** (`MiningPatch.cs`): Postfix on `TIFactionState.SafeMineNextworkSize` getter (using `MethodType.Getter` to disambiguate property getter from setter). Same iteration pattern as MiningBonusPatch; sums `miningCapBonus` raw int (no /100 conversion - it's added directly to the network size cap). Uses `nameof(TIFactionState.SafeMineNextworkSize)` so the patch fails to compile (intentional early warning) if TI ever fixes the typo upstream.
 
 ### Ship System
 
 | Type | Role | Notes |
 |---|---|---|
-| `TIShipHullTemplate` | Hull definition | `modelResource` is `string[]` not `List<string>` — use `.Length`. Both entries identical for single variant. Inherits from `TIShipModuleTemplate` → `TIShipPartTemplate` → `TIDataTemplate`. |
-| `TIShipModuleTemplate` | Hull base class — adds `mass_tons` field, `buildMass_tons()`, `buildCost()` overrides | Tiny intermediate class. |
-| `TIShipPartTemplate` | Grandparent class — defines `requiredProjectName`, `weightedBuildMaterials`, `crew`, `iconResource`, base `modelResource`/`combatUIpath` (string singletons; hull's `new` keyword shadows with arrays), `noCombatRepair`, `hp` | Contains `FactionCanBuild()` gate logic — see §2 requiredProjectName semantics. |
-| `TISpaceShipTemplate` | Ship design preset (= design; there is no separate `TISpaceShipDesign` class — see §22.8) | Extends `TIDataTemplate`. **References templates by name string fields** (`hullName`, `driveName`, `powerPlantName`, `radiatorName`, `factionName`) resolved lazily via `TemplateManager.Find<T>`. Slot indices baked into saves via `moduleTemplateEntries`/`hullWeaponTemplateEntries`/`noseWeaponTemplateEntries`. **All template-resolution properties are NOT null-safe** — `hullTemplate` getter returns null if `hullName` doesn't match, then `.alien` access throws. Player-designed ships saved as TISpaceShipTemplate entries directly into save file (NOT into JSON). 4,904 lines / 168KB — largest template file in TI. |
-| `TIDriveTemplate` | Drive definition | `modelResource()` is a METHOD not field — computes path from `hull.dataName` at runtime. |
+| `TIShipHullTemplate` | Hull definition | `modelResource` is `string[]` not `List<string>` - use `.Length`. Both entries identical for single variant. Inherits from `TIShipModuleTemplate` → `TIShipPartTemplate` → `TIDataTemplate`. |
+| `TIShipModuleTemplate` | Hull base class - adds `mass_tons` field, `buildMass_tons()`, `buildCost()` overrides | Tiny intermediate class. |
+| `TIShipPartTemplate` | Grandparent class - defines `requiredProjectName`, `weightedBuildMaterials`, `crew`, `iconResource`, base `modelResource`/`combatUIpath` (string singletons; hull's `new` keyword shadows with arrays), `noCombatRepair`, `hp` | Contains `FactionCanBuild()` gate logic - see §2 requiredProjectName semantics. |
+| `TISpaceShipTemplate` | Ship design preset (= design; there is no separate `TISpaceShipDesign` class - see §22.8) | Extends `TIDataTemplate`. **References templates by name string fields** (`hullName`, `driveName`, `powerPlantName`, `radiatorName`, `factionName`) resolved lazily via `TemplateManager.Find<T>`. Slot indices baked into saves via `moduleTemplateEntries`/`hullWeaponTemplateEntries`/`noseWeaponTemplateEntries`. **All template-resolution properties are NOT null-safe** - `hullTemplate` getter returns null if `hullName` doesn't match, then `.alien` access throws. Player-designed ships saved as TISpaceShipTemplate entries directly into save file (NOT into JSON). 4,904 lines / 168KB - largest template file in TI. |
+| `TIDriveTemplate` | Drive definition | `modelResource()` is a METHOD not field - computes path from `hull.dataName` at runtime. |
 | `ShipModelController` | Ship visual base | Call chain: `BuildShip()` → `SetSkin()` → `SetRadiators()` → `BuildDrives()` → `BuildWeapons()` → `SetRadiatorEmissiveKelvinRange()` → `AddExplosions()` |
-| `HumanShipController` | Human ship base | Abstract. Serialized field `public GameObject hullModel` — stored as fileID in prefab, survives renames. Each hull has own controller subclass (`BattlecruiserController`, `LancerController`, `TitanController`, `DreadnoughtController`, etc.). |
-| `AlienShipController` | Alien ship base | Parallel hierarchy: `AlienBattlecruiserController`, `AlienBattleshipController`, `AlienCruiserController`, `AlienAssaultCarrierController`, etc. Vanilla-only — BK does not subclass these. |
+| `HumanShipController` | Human ship base | Abstract. Serialized field `public GameObject hullModel` - stored as fileID in prefab, survives renames. Each hull has own controller subclass (`BattlecruiserController`, `LancerController`, `TitanController`, `DreadnoughtController`, etc.). |
+| `AlienShipController` | Alien ship base | Parallel hierarchy: `AlienBattlecruiserController`, `AlienBattleshipController`, `AlienCruiserController`, `AlienAssaultCarrierController`, etc. Vanilla-only - BK does not subclass these. |
 | `ShipWeaponVisController` | Weapon mount component | Required on every mount. Baked in prefab. Has serialized `baseObject`/`weaponObject`/`firePoint` fields. Vanilla code calls `GetComponent<>()`. For habs, runtime initialization uses `GetChild(0)` chain; for ships, fields are baked. |
 | `ColorAnimationEffect` | Radiator emissive glow | Required on every radiator GO. `m_colorAnimation` (private Gradient with `[GradientUsage(true)]`) is serialized by Unity when baked. Drives material `_EmissionColor` uniform. |
 | `RadiatorVisController` | Radiator state management | Required on every radiator GO. Baked in prefab. Has `intactRadiatorModel`, `destroyedRadiatorModel`, `explosionPrefab` serialized fields. |
-| `DamageLayer` | Combat damage tracking (decals) | Required on root. Baked in prefab. Serialized `_shipDamageMaterial` and `_shipRenderers` fields. Manages `_DamagePointArray` shader uniform (max 8 active damage points). **NOT related to `_ExplosionSequenceRoot`** — that is a separate destruction effect system handled by `ShipModelController.AddExplosions` via `destructionEffectController` and asset-loaded prefabs (`spaceCombat/BigExplosion`, `spaceCombat/FinalExplosion`). |
+| `DamageLayer` | Combat damage tracking (decals) | Required on root. Baked in prefab. Serialized `_shipDamageMaterial` and `_shipRenderers` fields. Manages `_DamagePointArray` shader uniform (max 8 active damage points). **NOT related to `_ExplosionSequenceRoot`** - that is a separate destruction effect system handled by `ShipModelController.AddExplosions` via `destructionEffectController` and asset-loaded prefabs (`spaceCombat/BigExplosion`, `spaceCombat/FinalExplosion`). |
 | `HullRegistry` | BK hull registry (per dataName) | Reads `HullDefinitions.cfg`, derives `HullMode` per entry, exposes `GetByDataName()` for `DriveVisualPatch`, `DriveVariantPatch`, and `SetSkinSkipPatch`. See §7. |
 | `ControllerRegistry` | BK controller registry (per ShipModelController subclass) | Reads `ControllerDefinitions.cfg`, exposes `GetByControllerType()`, dynamically attaches `WeaponMountPatch.DynamicPrefix` to each registered controller's `SlotToWeaponMountIndex`. See §7. |
 
 ### HumanShipController Decompiled Fields
 
 ```csharp
-public GameObject hullModel;           // Hull mesh parent — serialized reference
+public GameObject hullModel;           // Hull mesh parent - serialized reference
 public GameObject spikesRadiator12;    // Spike radiator references (4)
 public GameObject spikesRadiator3;
 public GameObject spikesRadiator6;
@@ -312,7 +316,7 @@ public override void SetSkin(TISpaceShipTemplate ship)
 | Level | Key | Rule |
 |---|---|---|
 | Top-level entries | `dataName` | Matched by dataName, not position. New entries add cleanly. |
-| Sub-arrays | Index position | `shipModuleSlots`, `specialRules`, `techBonuses` — partial = Frankenstein merge. Always provide FULL arrays. |
+| Sub-arrays | Index position | `shipModuleSlots`, `specialRules`, `techBonuses` - partial = Frankenstein merge. Always provide FULL arrays. |
 | Scalar fields | Field name | Your value replaces vanilla. Unspecified fields keep vanilla value. |
 
 **Field-level merge.** A BK override entry like `{"dataName": "Project_Warships", "friendlyName": "Orbital Ships"}` (only 2 fields) works correctly without zeroing the other ~14 vanilla fields.
@@ -324,7 +328,7 @@ public override void SetSkin(TISpaceShipTemplate ship)
 - `internalModules` must equal count of `Utility` slots
 - 3D model must have ≥ `hullHardpoints` dorsal+ventral mount pairs
 - Exceeding 3D count → combat crash (`NullReferenceException`)
-- Reducing below 3D count is safe — unused mounts hidden
+- Reducing below 3D count is safe - unused mounts hidden
 
 ### Slot Index Preservation
 
@@ -333,7 +337,7 @@ Saves reference slots by index. Observed save-compat rules from in-game testing:
 - **Existing weapon slot indices must NOT move.** Moving an equipped weapon slot to a different array position desyncs saves referencing that index. Weapon positions effectively have hardcoded identity per save.
 - **New weapon slots can be inserted anywhere.** Adding new HullHardPoint/NoseHardPoint entries is safe even when this shifts downstream utility/armor/propellant slots.
 - **Utility, Armor, Propellant slots are position-flexible.** Their indices can shift (up or down) without crashing the game or desyncing equipped modules. The game reconciles these by type at load time.
-- **In-place type conversion** (change an existing Utility slot to HullHardPoint at the same array index) is also save-safe — total array length unchanged, old index still valid. Count header (`internalModules`) must be updated to match.
+- **In-place type conversion** (change an existing Utility slot to HullHardPoint at the same array index) is also save-safe - total array length unchanged, old index still valid. Count header (`internalModules`) must be updated to match.
 
 Practical implications:
 - Inserting new weapon slots mid-array is safe as long as no existing weapon slot moves from its original index.
@@ -343,7 +347,7 @@ Practical implications:
 
 ### modelResource Format
 
-`"bundleName/assetName"` — `AssetBundleManager.LoadAsset<T>(assetPath)`:
+`"bundleName/assetName"` - `AssetBundleManager.LoadAsset<T>(assetPath)`:
 1. If no `/` in path → logs error `"Invalid asset path \"<path>\" expected BUNDLE/ASSET format"` and returns null
 2. Splits on first `/`
 3. Bundle name → `ToLowerInvariant()` (lowercased)
@@ -359,7 +363,7 @@ public List<HabModuleSpecialRule> specialRules = new List<HabModuleSpecialRule>(
 public float specialRulesValue;
 ```
 
-Hardcoded enum — new behaviors CANNOT be added via JSON. Single companion `specialRulesValue` (float) consumed by certain rules.
+Hardcoded enum - new behaviors CANNOT be added via JSON. Single companion `specialRulesValue` (float) consumed by certain rules.
 
 **54 distinct values + `none`** found across the source archive (55 total). Categorized by usage pattern:
 
@@ -375,7 +379,7 @@ Hardcoded enum — new behaviors CANNOT be added via JSON. Single companion `spe
 | `Solar_Power_Variable_Output` | Power output (modulated by solar conditions) |
 | `Cost_Scales_With_Gravity` | Mass scaling factor for high-gravity bodies |
 | `LEOControlPointCapacity` | Control point capacity (when in Earth LEO) |
-| `LEOBonus*` (11 variants — see below) | Magnitude of the specific LEO bonus |
+| `LEOBonus*` (11 variants - see below) | Magnitude of the specific LEO bonus |
 
 #### LEO Bonus rules (all value-consuming, only fire when hab in Earth LEO)
 
@@ -396,7 +400,7 @@ Hardcoded enum — new behaviors CANNOT be added via JSON. Single companion `spe
 | `LEOBonusAlienDetection` | Alien faction asset detection |
 | `LEOBonusHumanDetection` | Human faction asset detection |
 
-`HasLEOBonus()` method tests `EarthLEOOnly` OR any rule in the contiguous `LEOBonusArmyCombatValue` through index+14 enum range — meaning the LEO* rules are stored as consecutive enum values.
+`HasLEOBonus()` method tests `EarthLEOOnly` OR any rule in the contiguous `LEOBonusArmyCombatValue` through index+14 enum range - meaning the LEO* rules are stored as consecutive enum values.
 
 #### Flag rules (ignore `specialRulesValue`)
 
@@ -408,7 +412,7 @@ Hardcoded enum — new behaviors CANNOT be added via JSON. Single companion `spe
 | `Requires_Inhabited_Body` | Body must have `population >= populousSpaceObjectValue` (vanilla ≈ 50K; tunable via TIGlobalValuesTemplate JSON) |
 | `Requires_Interface_Orbit` | Must orbit a body with surface interface (Earth, etc.) |
 | `Requires_GasGiant_Orbit` | Must orbit a gas giant (Jupiter, Saturn, etc.) |
-| `CanFoundTier1Habs` | Engineer module — enables founding T1 habs |
+| `CanFoundTier1Habs` | Engineer module - enables founding T1 habs |
 | `CanFoundTier2Habs` | Enables founding T2 habs |
 | `CanFoundTier3Habs` | Enables founding T3 habs (alien-tech-tier) |
 | `ConsumesMCWhenUnpowered` | Mission Control still consumed if hab loses power |
@@ -421,7 +425,7 @@ Hardcoded enum — new behaviors CANNOT be added via JSON. Single companion `spe
 | `AlienSurveillance` | Alien-tech surveillance capability |
 | `AlienWormhole` | Alien wormhole infrastructure (gates destruction protection on alien primary hab) |
 | `AtrocityToKill` | Killing this module by faction action counts as 1 atrocity (always; flat per-module) |
-| `AtrocityToKill_Populous` | Killing this module counts as 1 atrocity ONLY if `ref_naturalSpaceObject.Populous()` (≥50K body population) — separate from base AtrocityToKill check |
+| `AtrocityToKill_Populous` | Killing this module counts as 1 atrocity ONLY if `ref_naturalSpaceObject.Populous()` (≥50K body population) - separate from base AtrocityToKill check |
 | `AtrocityToLose` | Losing this module to combat costs 1 atrocity to its owner |
 | `FleetECM` | Module provides fleet ECM bonus; magnitude in `specialRulesValue` (consumed via `GetSpecialRuleValue(HabModuleSpecialRule.FleetECM)`) |
 | `FleetTargeting` | Fleet targeting computer support |
@@ -448,7 +452,7 @@ public static readonly List<HabModuleSpecialRule> combatTroopsRules = new List<H
 
 #### Default
 
-`HabModuleSpecialRule.none` (lowercase) — enum default, no effect
+`HabModuleSpecialRule.none` (lowercase) - enum default, no effect
 
 #### Population thresholds for `Requires_*` rules
 
@@ -466,7 +470,7 @@ The thresholds are **tunable via `TIGlobalValuesTemplate` JSON** (`colonizedSpac
 
 #### LEOBonus per-module limit
 
-`HasLEOBonus()` iterates `specialRules` and detects whether ANY LEO bonus is present. Practice from BK observations: most modules limit themselves to ≤2 LEO-bonus rules per template entry, but no hard enforcement at this level — limit appears to come from balance considerations or downstream consumer checks.
+`HasLEOBonus()` iterates `specialRules` and detects whether ANY LEO bonus is present. Practice from BK observations: most modules limit themselves to ≤2 LEO-bonus rules per template entry, but no hard enforcement at this level - limit appears to come from balance considerations or downstream consumer checks.
 
 `TechBonusDiminishingReturns` is NOT found anywhere in the current archive's `HabModuleSpecialRule` references. The most likely explanation is confusion with the SEPARATE `techBonuses: TechBonus[]` field on TIHabModuleTemplate (which IS real, but is a different field, not a specialRule). Until/unless TIHabModuleTemplate.cs's enum declaration itself is reviewed, treat this name as unconfirmed.
 
@@ -480,7 +484,7 @@ The thresholds are **tunable via `TIGlobalValuesTemplate` JSON** (`colonizedSpac
 - Ship utility with `SpecialModuleRule.RepairOnlyWhenMarineModulePresent` → only repaired if hab has `HabModuleSpecialRule.RepairsMarineShipModules`
 - Ship utility with `SpecialModuleRule.RepairOnlyWhenConstructionModulePresent` → only repaired if hab has `HabModuleSpecialRule.RepairsHabKitShipModules`
 
-This is the formal interface between ship-side and hab-side repair systems — useful to know when designing modules that span both sides.
+This is the formal interface between ship-side and hab-side repair systems - useful to know when designing modules that span both sides.
 
 ### BK's hab approach (does NOT use specialRules)
 
@@ -498,15 +502,15 @@ Accepts project AND tech dataNames interchangeably. Per source: BK's `TIProjectT
 
 ### Income Fields (no DLL needed)
 
-`income[Resource]_month` — engine handles: `money`, `research`, `influence`, `ops`, `volatiles`, `metals`, `nobles`, `fissiles`, `antimatter`, `exotics`.
+`income[Resource]_month` - engine handles: `money`, `research`, `influence`, `ops`, `volatiles`, `metals`, `nobles`, `fissiles`, `antimatter`, `exotics`.
 
 ### Build Materials
 
 `weightedBuildMaterials` keys (from `ResourceCostBuilder`): `water`, `volatiles`, `metals`, `nobleMetals`, `fissiles`, `antimatter`, `exotics`. All `float` typed.
 
-The hab module's actual material costs are computed via `BuildMaterials(...)` which takes weighted values and multiplies by mass — see TIHabModuleTemplate. For ship parts, see ResourceCostBuilder usage in TIShipPartTemplate.
+The hab module's actual material costs are computed via `BuildMaterials(...)` which takes weighted values and multiplies by mass - see TIHabModuleTemplate. For ship parts, see ResourceCostBuilder usage in TIShipPartTemplate.
 
-### requiredProjectName Semantics — CRITICAL GOTCHA
+### requiredProjectName Semantics - CRITICAL GOTCHA
 
 Source: `TIShipPartTemplate.cs:164-171`:
 
@@ -537,9 +541,9 @@ public bool UnlockedShipPart(TIShipPartTemplate part)
 | Pointing at non-existent project name | `null` (TemplateManager.Find returns null and logs error) | Returns `true` | **STILL UNLOCKED** (counterintuitive) |
 | Pointing at real project | The TIProjectTemplate | `completedProjects.Contains(project)` | Locked until project completed |
 
-**Common modder trap:** Setting `requiredProjectName` to `"Project_DoesNotExist"` does NOT lock the hull — it UNLOCKS it. The null project resolves to "no gate". To actually lock a hull from being built, point `requiredProjectName` at a REAL project that is hard or impossible to research (e.g., a sentinel project with unreachable prereqs and very low chance fields).
+**Common modder trap:** Setting `requiredProjectName` to `"Project_DoesNotExist"` does NOT lock the hull - it UNLOCKS it. The null project resolves to "no gate". To actually lock a hull from being built, point `requiredProjectName` at a REAL project that is hard or impossible to research (e.g., a sentinel project with unreachable prereqs and very low chance fields).
 
-**Hab-side `FactionCanBuild` (TIHabModuleTemplate.cs) has DIFFERENT semantics — verify carefully:**
+**Hab-side `FactionCanBuild` (TIHabModuleTemplate.cs) has DIFFERENT semantics - verify carefully:**
 
 ```csharp
 public bool FactionCanBuild(TIFactionState faction)
@@ -576,11 +580,11 @@ public bool EverAllowedForFaction(TIFactionState faction)
 ### noShipyardBuild Filter Behavior
 
 Per TIFactionState.cs at three filter sites:
-- Line 11617: Alien faction filter — `isAlien && !noShipyardBuild`
-- Line 11653: Human faction startup filter — `!isAlien && !noShipyardBuild`
-- Line 11694: Human faction with project gating — `FactionCanBuild(this) && !noShipyardBuild`
+- Line 11617: Alien faction filter - `isAlien && !noShipyardBuild`
+- Line 11653: Human faction startup filter - `!isAlien && !noShipyardBuild`
+- Line 11694: Human faction with project gating - `FactionCanBuild(this) && !noShipyardBuild`
 
-Setting `noShipyardBuild: true` on a hull removes it from every `allowedShipHulls` query — the player's design UI, the AI autodesigner, and all build pipelines. Template still exists in memory for code lookups (e.g., STOFighter spawn at line 14558, Titan achievement at line 8625) but cannot be selected for construction.
+Setting `noShipyardBuild: true` on a hull removes it from every `allowedShipHulls` query - the player's design UI, the AI autodesigner, and all build pipelines. Template still exists in memory for code lookups (e.g., STOFighter spawn at line 14558, Titan achievement at line 8625) but cannot be selected for construction.
 
 ### Project Field Reference (TIProjectTemplate)
 
@@ -593,7 +597,7 @@ Per BK. `TIProjectTemplate.json` and use in TIFactionState's project advancement
 | `techCategory` | string | "MilitaryScience", "SocialScience", "SpaceScience", "Energy", etc. |
 | `AI_techRole` | string | "SpaceWar", "SpaceDevelopment", etc. AI uses for prioritization |
 | `AI_criticalTech` | bool | If true, AI strongly prioritizes |
-| `AI_projectRole` | string | "Fleet", "MissionControl", "SpaceResources" — AI fit-for-purpose tag |
+| `AI_projectRole` | string | "Fleet", "MissionControl", "SpaceResources" - AI fit-for-purpose tag |
 | `researchCost` | int | Research points to complete |
 | `prereqs` | string[] | Other project or tech dataNames required first |
 | `altPrereq0` | string | Optional alternative prerequisite (OR semantics) |
@@ -628,13 +632,13 @@ foreach (string text in this.availableProjectNames) {
 // Same pattern for finishedProjectNames, availableTechNames, completedTechNames
 ```
 
-If a save references a project or tech name that no longer exists in templates (e.g., mod removed/renamed), the template is silently skipped at load — no crash.
+If a save references a project or tech name that no longer exists in templates (e.g., mod removed/renamed), the template is silently skipped at load - no crash.
 
 **Hulls are NOT null-safe.** TISpaceShipTemplate references hull templates by name. If a save references a hull dataName that no longer exists, `TemplateManager.Find<TIShipHullTemplate>(name)` returns null, and subsequent property access (`.alien`, etc.) throws NullReferenceException at load.
 
 **Practical implications:**
 - Renaming projects/techs is save-compatible (orphan refs silently dropped)
-- **Renaming hulls is save-BREAKING** — must be released as a save-breaking version
+- **Renaming hulls is save-BREAKING** - must be released as a save-breaking version
 
 ---
 
@@ -654,7 +658,7 @@ If a save references a project or tech name that no longer exists in templates (
 
 | Priority | Patch | Reason |
 |---|---|---|
-| Default (400) | All BK static `[HarmonyPatch]` classes | `BuildLimitPatch`, `MiningBonusPatch` + `MiningCapBonusPatch`, `DriveVisualPatch`, `DriveVariantPatch`, `SetSkinSkipPatch` — independent, no ordering constraints |
+| Default (400) | All BK static `[HarmonyPatch]` classes | `BuildLimitPatch`, `MiningBonusPatch` + `MiningCapBonusPatch`, `DriveVisualPatch`, `DriveVariantPatch`, `SetSkinSkipPatch` - independent, no ordering constraints |
 | N/A (dynamic) | `WeaponMountPatch.DynamicPrefix` | Applied per-controller by `ControllerRegistry.PatchWeaponMounts()` after `harmony.PatchAll()`, not via `[HarmonyPatch]` attribute |
 
 ### Static Initialization Hazard
@@ -663,7 +667,7 @@ If a save references a project or tech name that no longer exists in templates (
 
 ### Vanilla Typo
 
-`SafeMineNextworkSize` — "Nextwork" not "Network". Per `BetterKinetics/MiningPatch.cs` — uses the `nameof(TIFactionState.SafeMineNextworkSize)` reference. BK's MiningCapBonusPatch comments document this intentionally: "If TI ever corrects the typo, nameof() below will fail to compile — intentional early warning."
+`SafeMineNextworkSize` - "Nextwork" not "Network". Per `BetterKinetics/MiningPatch.cs` - uses the `nameof(TIFactionState.SafeMineNextworkSize)` reference. BK's MiningCapBonusPatch comments document this intentionally: "If TI ever corrects the typo, nameof() below will fail to compile - intentional early warning."
 
 When patching this property, must use the exact misspelling. The `nameof()` operator catches typo-correction breakages at compile time.
 
@@ -690,7 +694,7 @@ Full `TerraInvicta_Data` extraction provides:
 | Shader Export Mode | Dummy Shader |
 | Script Export Format | Hybrid (Assembly-CSharp → .cs, others → .dll) |
 
-**Decompiler artifacts** in v1.0.32 + AssetRipper 1.3.12 — 4 files need automated fixes before Unity compiles:
+**Decompiler artifacts** in v1.0.32 + AssetRipper 1.3.12 - 4 files need automated fixes before Unity compiles:
 
 | File | Error | Fix |
 |---|---|---|
@@ -698,7 +702,7 @@ Full `TerraInvicta_Data` extraction provides:
 | `MasterTransferPlanner.cs` | CS8196: out var scoping | Hoist declarations before call |
 | `MasterTransferPlanner.cs` | CS1061: `.trajectory` on tuple | → `.Item3` |
 | `SimulatedCombat.cs` | CS1061: `.x` / `.DistanceToTarget_km` on tuple | → `.Item1` / `.Item1.DistanceToTarget_km` |
-| `HumanHabPlanner.cs` | CS1061: `.Hab`/`.Order`/`.Cost` on tuple | → `.Item1`/`.Item2`/`.Item3` (regex with word boundaries — naive replace breaks `hab.HabSchematic`) |
+| `HumanHabPlanner.cs` | CS1061: `.Hab`/`.Order`/`.Cost` on tuple | → `.Item1`/`.Item2`/`.Item3` (regex with word boundaries - naive replace breaks `hab.HabSchematic`) |
 
 Fix script: `fix_decompiler_errors.py` (~30 automated fixes).
 
@@ -759,10 +763,10 @@ Splits on first `/`. Bundle name lowercased. Asset name as-is (case-sensitive).
 
 | Setting | Required Value | Why |
 |---|---|---|
-| Always Included Shaders — Standard | **REMOVED** from list | If Standard is in Always Included Shaders, the bundle stores only a *reference* to Standard instead of the shader code. At runtime in TI, that reference can't resolve (TI has a different Always Included list), the material's shader binding is null, and the mesh renders pure white. **This is the root cause of the "white hull" bug.** |
-| Shader Stripping — Instancing Variants | **Keep All** | Default is "Strip Unused" which removes `INSTANCING_ON` variant from bundled shaders. Unity issue tracker confirms this happens even with ShaderVariantCollections. Canonical fix: set to Keep All. |
+| Always Included Shaders - Standard | **REMOVED** from list | If Standard is in Always Included Shaders, the bundle stores only a *reference* to Standard instead of the shader code. At runtime in TI, that reference can't resolve (TI has a different Always Included list), the material's shader binding is null, and the mesh renders pure white. **This is the root cause of the "white hull" bug.** |
+| Shader Stripping - Instancing Variants | **Keep All** | Default is "Strip Unused" which removes `INSTANCING_ON` variant from bundled shaders. Unity issue tracker confirms this happens even with ShaderVariantCollections. Canonical fix: set to Keep All. |
 
-**Note on dependency inclusion:** Unity's asset bundle system walks dependencies automatically. Tagging a prefab pulls in its referenced materials → their textures → their shaders. No manual tagging of materials/textures needed — and in fact, tagging them separately creates cross-bundle shader reference problems.
+**Note on dependency inclusion:** Unity's asset bundle system walks dependencies automatically. Tagging a prefab pulls in its referenced materials → their textures → their shaders. No manual tagging of materials/textures needed - and in fact, tagging them separately creates cross-bundle shader reference problems.
 
 **Build options for BK bundles:**
 ```csharp
@@ -772,20 +776,20 @@ BuildPipeline.BuildAssetBundles(outputPath,
     BuildTarget.StandaloneWindows64);
 ```
 
-- `ForceRebuildAssetBundle` — ensures no stale cache after editor changes
-- `DeterministicAssetBundle` — stable internal IDs across rebuilds (avoids subtle cache-invalidation issues between iterations)
-- Default compression is LZMA (full-file). Unity recommends `ChunkBasedCompression` (LZ4) for locally-distributed bundles loaded via `AssetBundle.LoadFromFile` — future optimization, not required for correctness.
+- `ForceRebuildAssetBundle` - ensures no stale cache after editor changes
+- `DeterministicAssetBundle` - stable internal IDs across rebuilds (avoids subtle cache-invalidation issues between iterations)
+- Default compression is LZMA (full-file). Unity recommends `ChunkBasedCompression` (LZ4) for locally-distributed bundles loaded via `AssetBundle.LoadFromFile` - future optimization, not required for correctness.
 
 ### Bundle Inspection Limits
 
-- `AssetBundle.LoadAllAssets<T>()` returns only explicitly tagged assets and their direct sub-assets — **not dependency assets** pulled in by reference. A bundle may contain 10 dependency materials that `LoadAllAssets<Material>()` reports as zero.
+- `AssetBundle.LoadAllAssets<T>()` returns only explicitly tagged assets and their direct sub-assets - **not dependency assets** pulled in by reference. A bundle may contain 10 dependency materials that `LoadAllAssets<Material>()` reports as zero.
 - Reliable bundle verification: load the prefab, walk `MeshRenderer.sharedMaterials`, check for null slots and texture references. This is what ShipTools `VerifyHull` does.
 
 ### Asset bundle tag location
 
-Asset bundle assignments live in the `.meta` file, not the `.prefab` file. `SaveAsPrefabAsset` and `EditPrefabContentsScope` do not touch the bundle tag — it persists across any number of content edits. Tagging is done via `AssetImporter.GetAtPath(path).SetAssetBundleNameAndVariant(...)`.
+Asset bundle assignments live in the `.meta` file, not the `.prefab` file. `SaveAsPrefabAsset` and `EditPrefabContentsScope` do not touch the bundle tag - it persists across any number of content edits. Tagging is done via `AssetImporter.GetAtPath(path).SetAssetBundleNameAndVariant(...)`.
 
-### Texture Streaming — CRITICAL SETUP STEP
+### Texture Streaming - CRITICAL SETUP STEP
 
 Unity's `Streaming Mipmaps` texture import setting is **incompatible with mod-loaded AssetBundles in TI** and is the root cause of the "white ship" rendering bug. This is the single most important non-obvious gotcha in the entire BK pipeline.
 
@@ -793,7 +797,7 @@ Unity's `Streaming Mipmaps` texture import setting is **incompatible with mod-lo
 - Unity's texture streaming system loads only the lowest mip level (16×16 or smaller) at first, then progressively upgrades based on visibility and `Mip Map Priority`
 - Streaming priority is established at scene-load time when the streaming system catalogs textures in loaded bundles
 - Mod bundles are loaded by `AssetBundleManager.Initialize` AFTER the streaming system is already running for vanilla bundles
-- TI's streaming system never properly prioritizes mod-bundle textures — they stay stuck at the lowest mip level forever
+- TI's streaming system never properly prioritizes mod-bundle textures - they stay stuck at the lowest mip level forever
 - The lowest mip of a 2048×2048 texture is essentially a single average color
 - The Standard shader samples that single-pixel "texture" and renders it as a flat color across the whole mesh
 - Result: every mod-loaded ship hull renders as a solid white/gray silhouette in both combat and strategy view, regardless of how correct the materials, shader keywords, prefab structure, or DLL patches are
@@ -801,8 +805,8 @@ Unity's `Streaming Mipmaps` texture import setting is **incompatible with mod-lo
 **The fix:**
 - Every Texture2D in the project must have `streamingMipmaps = false` in its TextureImporter
 - Direct comparison with the working Expanse Ships Mod bundle: their textures have `streaming=False`, ours had `streaming=True`
-- This must be set at **import time** — the flag is baked into the texture's `.meta` file and serialized into the bundle
-- Editing the flag at build time via ShipTools `EnsureBundleSettings()` does NOT work — the bundle serializer reads the imported state, not runtime overrides
+- This must be set at **import time** - the flag is baked into the texture's `.meta` file and serialized into the bundle
+- Editing the flag at build time via ShipTools `EnsureBundleSettings()` does NOT work - the bundle serializer reads the imported state, not runtime overrides
 
 **Project setup pattern (REQUIRED for any new BK-style extracted Unity project):**
 1. Drop `ShipTools.cs` into `Assets/Editor/` **BEFORE** running AssetRipper or copying any textures. Its nested `Importer : AssetPostprocessor` (see §16) calls `streamingMipmaps = false` on every texture imported afterwards.
@@ -818,25 +822,25 @@ for o in env.objects:
         d = o.read()
         print(f'{d.m_Name}: streaming={d.m_StreamingMipmaps}')
 ```
-Expected: `streaming=False` for every texture. If any show `streaming=True`, the postprocessor was missed for those imports — re-run the menu item and rebuild the bundle.
+Expected: `streaming=False` for every texture. If any show `streaming=True`, the postprocessor was missed for those imports - re-run the menu item and rebuild the bundle.
 
 **Why this is invisible without comparison testing:**
 - Unity Editor renders textures correctly in Scene view, Game view, and Play Mode regardless of streaming flag (editor doesn't run the streaming system the same way)
-- ShipTools `Verify Hull` reports materials as "textured" because the texture references are valid — the renderer just can't sample them at runtime
-- Player.log shows no errors, warnings, or null references — the bundle loads fine
+- ShipTools `Verify Hull` reports materials as "textured" because the texture references are valid - the renderer just can't sample them at runtime
+- Player.log shows no errors, warnings, or null references - the bundle loads fine
 - Bundle inspection via UnityPy confirms shader, materials, keywords, and texture PathIDs are all valid
 - The bug only manifests when TI's runtime tries to sample the actual mip levels at draw time
 - The only way to find this without prior knowledge is to compare a known-working mod bundle (like Expanse Ships Mod) to the broken bundle and notice the streaming flag delta
 
 ### Comparison Diagnostic Methodology
 
-When debugging custom hull rendering issues, use the Expanse Ships Mod bundle as the reference for "what a working mod bundle looks like." Locally at `/mnt/steamgames/SteamLibrary/steamapps/workshop/content/1176470/3490333915/expanseshipsmod`. The DLL `ExpanseShipsModActual.dll` is decompilable with dnSpy.
+When debugging custom hull rendering issues, use the Expanse Ships Mod bundle as the reference for "what a working mod bundle looks like." Installed via Workshop subscription at `<SteamLibrary>/steamapps/workshop/content/1176470/3490333915/expanseshipsmod`. The DLL `ExpanseShipsModActual.dll` is decompilable with dnSpy.
 
 Methodology:
 
-1. Inspect the broken bundle with UnityPy — dump material keywords, shader PathIDs, texture references, streaming flags
+1. Inspect the broken bundle with UnityPy - dump material keywords, shader PathIDs, texture references, streaming flags
 2. Inspect Expanse's bundle the same way
-3. Diff the outputs — fields that match are eliminated as causes; fields that differ are candidates
+3. Diff the outputs - fields that match are eliminated as causes; fields that differ are candidates
 4. Verify candidates against Unity docs and community discussions
 5. Apply the minimal fix that aligns the broken bundle to the working one
 
@@ -915,12 +919,12 @@ public Nozzle nozzle {
 
 ### Slot Types
 
-`Drive`, `PowerPlant`, `Utility`, `Radiator`, `TailArmor`, `LateralArmor`, `NoseArmor`, `NoseHardPoint`, `HullHardPoint`, `None` — confirmed in source via `ShipModuleSlotType.X` references at multiple sites in TISpaceShipState.cs, TISpaceShipTemplate.cs, TIShipHullTemplate.cs, TIDriveTemplate.cs.
+`Drive`, `PowerPlant`, `Utility`, `Radiator`, `TailArmor`, `LateralArmor`, `NoseArmor`, `NoseHardPoint`, `HullHardPoint`, `None` - confirmed in source via `ShipModuleSlotType.X` references at multiple sites in TISpaceShipState.cs, TISpaceShipTemplate.cs, TIShipHullTemplate.cs, TIDriveTemplate.cs.
 
 `weaponSlot` (computed property) returns true for `HullHardPoint` or `NoseHardPoint`.
 `armorSlot` (computed property) returns true for `LateralArmor`, `NoseArmor`, or `TailArmor`.
 
-(Note: there is a separate `Propellant` enum in `TIDriveTemplate.cs` used for drive type classification — not a slot type. The two are unrelated.)
+(Note: there is a separate `Propellant` enum in `TIDriveTemplate.cs` used for drive type classification - not a slot type. The two are unrelated.)
 
 ### Module States
 
@@ -929,7 +933,7 @@ public Nozzle nozzle {
 | active | `ActiveModules()` | F3/F4 (bonuses) |
 | okay | `OkayModules()` | F1/F2 (limits) |
 
-### Faction Material Suffixes — DATA-DRIVEN (not enum)
+### Faction Material Suffixes - DATA-DRIVEN (not enum)
 
 `TIFactionTemplate.GetShipMaterialSuffix(designingFaction)`:
 
@@ -957,7 +961,7 @@ public static string GetShipMaterialSuffix(TIFactionState designingFaction)
 }
 ```
 
-The suffixes (`_resist`, `_destroy`, etc.) are values stored in each faction's `hullSkinBase` JSON field in `TIFactionTemplate.json` — NOT enum constants. Listed here for reference:
+The suffixes (`_resist`, `_destroy`, etc.) are values stored in each faction's `hullSkinBase` JSON field in `TIFactionTemplate.json` - NOT enum constants. Listed here for reference:
 
 | Suffix | Faction |
 |---|---|
@@ -981,7 +985,7 @@ All children must be direct children of the prefab root. `transform.Find("name")
 
 Edit in **Prefab Edit Mode** (double-click prefab in Project panel). Scene edits do NOT persist to the `.prefab` asset file.
 
-### Exact-Name Children (vanilla `transform.Find` — case-sensitive)
+### Exact-Name Children (vanilla `transform.Find` - case-sensitive)
 
 Required GameObject names:
 
@@ -1016,15 +1020,15 @@ ShipTools `Create Hull From Vanilla` detects either pattern automatically and re
 
 **Lancer body part children (7, under Hull_Lancer):** `Crew`, `Crew_Details` (note plural), `Head`, `Mid_A`, `Mid_B`, `Radiators`, `Tanks`
 
-**Vanilla prefab body children have EMPTY material GUIDs** — confirmed by YAML parsing. TI relies on runtime `SetSkin` to load faction-specific materials from separate faction bundles at render time. This is why registered mod hulls (which bypass vanilla SetSkin) must have materials baked into the bundle at edit time. Body part MeshRenderers in vanilla prefabs have no `sharedMaterial` at all until the engine assigns one.
+**Vanilla prefab body children have EMPTY material GUIDs** - confirmed by YAML parsing. TI relies on runtime `SetSkin` to load faction-specific materials from separate faction bundles at render time. This is why registered mod hulls (which bypass vanilla SetSkin) must have materials baked into the bundle at edit time. Body part MeshRenderers in vanilla prefabs have no `sharedMaterial` at all until the engine assigns one.
 
-### Hull Mesh Children — Keep Vanilla Names
+### Hull Mesh Children - Keep Vanilla Names
 
-Body mesh children (e.g., `Earth_Battlecruiser_Crew`, `Earth_Battlecruiser_Head`, `Hull_Lancer/Head`) must keep their vanilla names. The edit-time bake tool identifies which faction material belongs to each renderer by matching `MAT_{childName}_{faction}.mat` — the filename carries the identity. Renamed children have no matching material file and the bake tool will skip them, leaving them unrendered. Only the body mesh PARENT gets renamed to `Hull`; the children under it keep their vanilla names.
+Body mesh children (e.g., `Earth_Battlecruiser_Crew`, `Earth_Battlecruiser_Head`, `Hull_Lancer/Head`) must keep their vanilla names. The edit-time bake tool identifies which faction material belongs to each renderer by matching `MAT_{childName}_{faction}.mat` - the filename carries the identity. Renamed children have no matching material file and the bake tool will skip them, leaving them unrendered. Only the body mesh PARENT gets renamed to `Hull`; the children under it keep their vanilla names.
 
 ### Harmless Null Renderers
 
-Top-level radiator GameObjects (`Radiator12`, `Droplet4`, etc., 13 total on Battlecruiser) have a MeshRenderer component with no actual mesh to draw — the renderer is vestigial, with its MeshFilter either missing or holding a null sharedMesh. The actual radiator rendering happens on child SkinnedMeshRenderer components driven by bone chains and the Animator. These top-level MeshRenderers have null `sharedMaterial` in vanilla prefabs and always have — vanilla ships render correctly because the draw-call for a null-mesh renderer is a no-op.
+Top-level radiator GameObjects (`Radiator12`, `Droplet4`, etc., 13 total on Battlecruiser) have a MeshRenderer component with no actual mesh to draw - the renderer is vestigial, with its MeshFilter either missing or holding a null sharedMesh. The actual radiator rendering happens on child SkinnedMeshRenderer components driven by bone chains and the Animator. These top-level MeshRenderers have null `sharedMaterial` in vanilla prefabs and always have - vanilla ships render correctly because the draw-call for a null-mesh renderer is a no-op.
 
 **`RunHullChecks` and `VerifyBundleHull` skip renderers where any of the following are true:**
 - `MeshRenderer.enabled == false`
@@ -1060,7 +1064,7 @@ Mount GO           ← edit-time AddWeaponMount finds via name Contains, this is
 
 | Layer | Applied to | Purpose |
 |-------|-----------|---------|
-| 2 (Ignore Raycast) | Root GO | Default — not hit by projectiles |
+| 2 (Ignore Raycast) | Root GO | Default - not hit by projectiles |
 | 17 (HurtBox) | Hull mesh children, Drive | Projectile collision detection. Wrong layer = projectiles pass through. |
 | 0 (Default) | Weapon mounts, radiators, thrusters, UI elements | Non-hittable |
 
@@ -1088,7 +1092,7 @@ All components are serialized in the prefab from the AssetRipper-extracted Unity
 
 BK reads two config files at startup. Both are JSON arrays. Both scan all sibling mod folders under `Mods/Enabled/`. Both are first-wins on collision (later mods registering the same key are ignored with a log warning).
 
-### 7.1 — `HullDefinitions.cfg`
+### 7.1 - `HullDefinitions.cfg`
 
 Per-`dataName` hull declarations. Each entry's field combination derives a `HullMode`:
 
@@ -1118,12 +1122,12 @@ Per-`dataName` hull declarations. Each entry's field combination derives a `Hull
 |---|---|---|
 | only `vanillaDriveDataName` | `PatchOnly` | New dataName aliases another hull's drive assets; no bundle |
 | `bundleName` only | `Hybrid` | BK hull mesh from bundle; vanilla drive variants baked in at edit time |
-| `bundleName` + `drivePrefab` | `FullCustom` | BK hull mesh + BK drive prefab (cross-bundle shader rendering is fragile — `HullRegistry` warns at parse) |
+| `bundleName` + `drivePrefab` | `FullCustom` | BK hull mesh + BK drive prefab (cross-bundle shader rendering is fragile - `HullRegistry` warns at parse) |
 | `bundleName` + `vanillaDriveDataName` | `Hybrid` | BK mesh; drive paths use the alias when resolved by `DriveVisualPatch` |
 | `drivePrefab` without `bundleName` | rejected | Invalid; entry is skipped |
 | no bundle, no drive prefab, no alias | rejected | Useless entry; entry is skipped |
 
-### 7.2 — `ControllerDefinitions.cfg`
+### 7.2 - `ControllerDefinitions.cfg`
 
 Per-`ShipModelController` slot-to-mount-index maps. Resolved via reflection against `Assembly-CSharp.dll`. Applied dynamically as Harmony prefixes on each registered controller's `SlotToWeaponMountIndex`.
 
@@ -1142,8 +1146,8 @@ Per-`ShipModelController` slot-to-mount-index maps. Resolved via reflection agai
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `controllerClass` | string | Yes | A subclass of `ShipModelController`. Validated at parse — wrong type or missing class is rejected. |
-| `weaponSlotMap` | array | Yes | Slot-to-mount-index mappings. Empty array is invalid — at least one slot must be mapped. |
+| `controllerClass` | string | Yes | A subclass of `ShipModelController`. Validated at parse - wrong type or missing class is rejected. |
+| `weaponSlotMap` | array | Yes | Slot-to-mount-index mappings. Empty array is invalid - at least one slot must be mapped. |
 
 **`weaponSlotMap` entry**:
 
@@ -1160,7 +1164,7 @@ Per-`ShipModelController` slot-to-mount-index maps. Resolved via reflection agai
 | `mounts` | string[] | Yes | `Mount` enum values that trigger this override |
 | `index` | int | Yes | Array index to use when one of the listed mounts is equipped |
 
-### 7.3 — Delta-only semantics
+### 7.3 - Delta-only semantics
 
 `WeaponMountPatch.DynamicPrefix` is the Harmony prefix attached to each registered controller's `SlotToWeaponMountIndex`. Behavior on each call:
 
@@ -1184,9 +1188,9 @@ Current BK hulls registered in `HullDefinitions.cfg`. Three Hybrid hulls ship cu
 | Battlecruiser | Scout Cruiser | Hybrid | `scoutcruiser` (ScoutCruiser.prefab) | Reuses BattlecruiserController; vanilla drive variants |
 | Lancer | Battlecruiser | Hybrid | `newbattlecruiser` (NewBattleCruiser.prefab) | Reuses LancerController; vanilla drive variants |
 | Titan | Battleship | Hybrid | `newbattleship` (NewBattleShip.prefab) | Reuses TitanController; vanilla drive variants |
-| HeavyCruiser | Heavy Cruiser | PatchOnly | (alias only) | `vanillaDriveDataName: "Dreadnought"` — reuses Dreadnought drive paths via `DriveVisualPatch` |
+| HeavyCruiser | Heavy Cruiser | PatchOnly | (alias only) | `vanillaDriveDataName: "Dreadnought"` - reuses Dreadnought drive paths via `DriveVisualPatch` |
 
-Other vanilla hulls (Gunship, Escort, Corvette, Frigate, Destroyer, Monitor, Cruiser, Battleship, Dreadnought) are unmodified — BK does not register them.
+Other vanilla hulls (Gunship, Escort, Corvette, Frigate, Destroyer, Monitor, Cruiser, Battleship, Dreadnought) are unmodified - BK does not register them.
 
 ### Bundle integrity
 
@@ -1198,7 +1202,7 @@ Each shipped bundle has a companion `<bundlename>.manifest` file (Unity-generate
 | `newbattlecruiser` | `NewBattleCruiser.prefab` (+ baked drive variants) | Lancer | LancerController |
 | `newbattleship` | `NewBattleShip.prefab` (+ baked drive variants) | Titan | TitanController |
 
-Each bundle is self-contained (`Dependencies: []`) — no inter-bundle references. CRC and `AssetFileHash` provide integrity verification; any change to bundle contents changes both. `TypeTreeHash` is Unity's serialization-format fingerprint — a mismatch between build and runtime prevents deserialization (typically due to Unity version mismatch or script structure changes).
+Each bundle is self-contained (`Dependencies: []`) - no inter-bundle references. CRC and `AssetFileHash` provide integrity verification; any change to bundle contents changes both. `TypeTreeHash` is Unity's serialization-format fingerprint - a mismatch between build and runtime prevents deserialization (typically due to Unity version mismatch or script structure changes).
 
 ShipTools `Finalize and Ship` writes both `<bundlename>` and `<bundlename>.manifest` to the deploy folder; missing `.manifest` causes the bundle never to be discovered.
 
@@ -1210,10 +1214,10 @@ ShipTools `Finalize and Ship` writes both `<bundlename>` and `<bundlename>.manif
 - Full sub-arrays always. Partial = corruption.
 - Python verification after every edit: headers, dupes, weapon index, parse.
 - Never move or delete existing weapon slots. Inserting new weapon slots anywhere is safe. See §2 Slot Index Preservation.
-- No `None` slots — render as usable when mod-loaded.
+- No `None` slots - render as usable when mod-loaded.
 - Utility slots flank nearest HullHardPoint column (avoids phantom rendering).
-- Localization function-only — no stat values (prevents desync).
-- **`thrusterMultiplier` is INT type** — fractional values (1.12, 1.15, 1.25) silently truncate to 1 at parse. To get a multiplier effect, either use whole numbers or apply via Harmony patch.
+- Localization function-only - no stat values (prevents desync).
+- **`thrusterMultiplier` is INT type** - fractional values (1.12, 1.15, 1.25) silently truncate to 1 at parse. To get a multiplier effect, either use whole numbers or apply via Harmony patch.
 - **`requiredProjectName` null = unlocked, not locked.** Pointing at non-existent project = also null = also unlocked. To lock a hull, point at a real-but-unreachable project. See §2.
 
 ### DLL
@@ -1225,16 +1229,16 @@ ShipTools `Finalize and Ship` writes both `<bundlename>` and `<bundlename>.manif
 - Compare against a known-working reference DLL (e.g., Expanse Ships Mod) when stuck.
 
 ### Assets
-- **Drop `ShipTools.cs` into `Assets/Editor/` BEFORE extracting anything** — its `Importer` postprocessor disables `streamingMipmaps` on every imported texture. Without this, mod-bundle ships render flat white in TI runtime regardless of correct materials/shaders/keywords. See §4 Texture Streaming.
-- **Flat hierarchy** — all children direct under prefab root.
-- **Prefab Edit Mode** — double-click prefab in Project panel. Scene edits don't persist.
+- **Drop `ShipTools.cs` into `Assets/Editor/` BEFORE extracting anything** - its `Importer` postprocessor disables `streamingMipmaps` on every imported texture. Without this, mod-bundle ships render flat white in TI runtime regardless of correct materials/shaders/keywords. See §4 Texture Streaming.
+- **Flat hierarchy** - all children direct under prefab root.
+- **Prefab Edit Mode** - double-click prefab in Project panel. Scene edits don't persist.
 - Verify Unity version from game's `globalgamemanagers`, never docs.
 - Unique bundle names. Deploy bundle + manifest together.
 - Keep vanilla hull mesh child names intact for faction material matching.
 - All hull mesh children on Layer 17 for projectile collision.
 - Use Ship Tools → Verify Hull before every build.
 
-### C5 — Bad Hull/Utility Module Placement
+### C5 - Bad Hull/Utility Module Placement
 
 If on game start the log shows hundreds of `"Bad hull module placement"` or `"Bad utility module placement"` warnings, this means:
 - One or more vanilla AI ship designs (typically `Ship1` through `Ship33`) reference slot indices that don't match the current hull's slot layout.
@@ -1242,13 +1246,13 @@ If on game start the log shows hundreds of `"Bad hull module placement"` or `"Ba
 - Symptom is purely cosmetic in most cases (warnings only) but indicates AI ships may render with weapons in wrong positions or be unbuildable.
 - Verify on fresh-game start.
 
-### Environment (CachyOS)
+### Environment (Linux)
 - Fish shell: `echo '...' >` not heredocs.
 - Unity build: `openssl-1.1` (AUR) + `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`
 - Unity licensing (kernel 6.19+): `patchelf --clear-execstack` on `libbindings.so`
-- Build DLL: `cd ~/Desktop/Source && dotnet build -c Release`
-- Deploy DLL: `cp bin/Release/net48/BetterKinetics.dll "…/Mods/Enabled/ExpandedFleetsAndNavies/"`
-- Unity editor: `unity -projectPath ~/Desktop/Ships/TI_Ships_Extracted/ExportedProject`
+- Build DLL: `cd <repo>/src && dotnet build -c Release`
+- Deploy DLL: `cp bin/Release/net48/BetterKinetics.dll ".../Mods/Enabled/ExpandedFleetsAndNavies/"`
+- Unity editor: `unity -projectPath <unity-work>/TI_Ships_Extracted/ExportedProject`
 - UMM: `WINEDLLOVERRIDES="winhttp=n,b" %command%`
 
 ---
@@ -1257,23 +1261,23 @@ If on game start the log shows hundreds of `"Bad hull module placement"` or `"Ba
 
 | Item | Path |
 |---|---|
-| Game root | `/mnt/steamgames/SteamLibrary/steamapps/common/Terra Invicta/` |
-| Assembly-CSharp.dll | `…/TerraInvicta_Data/Managed/Assembly-CSharp.dll` |
-| Ships bundle | `…/TerraInvicta_Data/StreamingAssets/AssetBundles/ships` |
-| BK deploy folder | `…/Mods/Enabled/ExpandedFleetsAndNavies/` |
-| DLL source | `~/Desktop/Source/` |
-| Extracted working project | `~/Desktop/Ships/TI_Ships_Extracted/ExportedProject/` |
-| Recovery project (never modify) | `~/Desktop/Ships/TI_Recovery/ExportedProject/` |
-| Bundle output | `/home/kyle/Desktop/BundleOut/` |
-| Vanilla prefabs | `…/ExportedProject/Assets/GameObject/Battlecruiser.prefab` (475 total) |
-| Decompiled scripts | `…/ExportedProject/Assets/Scripts/Assembly-CSharp/PavonisInteractive/TerraInvicta/` |
-| AnimatorControllers | `…/ExportedProject/Assets/AnimatorController/Earth_Fin_Radiator.controller` |
-| GameAssemblies (recovery) | `…/TI_Ships_Extracted/AuxiliaryFiles/GameAssemblies/Assembly-CSharp.dll` |
-| Player.log | `…/compatdata/1176470/pfx/drive_c/users/steamuser/AppData/LocalLow/Pavonis Interactive/TerraInvicta/Player.log` |
-| Workshop content root | `/mnt/steamgames/SteamLibrary/steamapps/workshop/content/1176470/` |
-| Expanse Ships Mod workshop | `…/workshop/content/1176470/3490333915/` (mod ID `3490333915`) — reference for working custom hull integration |
-| Expanse Ships Mod DLL | `…/workshop/content/1176470/3490333915/ExpanseShipsModActual.dll` — decompile with dnSpy for canonical custom-hull DLL pattern |
-| Expanse Ships Mod bundle | `…/workshop/content/1176470/3490333915/expanseshipsmod` — UnityPy comparison reference for material/texture/shader serialization |
+| Game root | `<game>/` = `<SteamLibrary>/steamapps/common/Terra Invicta/` |
+| Assembly-CSharp.dll | `<game>/TerraInvicta_Data/Managed/Assembly-CSharp.dll` |
+| Ships bundle | `<game>/TerraInvicta_Data/StreamingAssets/AssetBundles/ships` |
+| BK deploy folder | `<game>/Mods/Enabled/ExpandedFleetsAndNavies/` |
+| DLL source | `<repo>/src/` |
+| Extracted working project | `<unity-work>/TI_Ships_Extracted/ExportedProject/` |
+| Recovery project (never modify) | `<unity-work>/TI_Recovery/ExportedProject/` |
+| Bundle output | `<bundle-out>/` |
+| Vanilla prefabs | `<unity-work>/TI_Ships_Extracted/ExportedProject/Assets/GameObject/Battlecruiser.prefab` (475 total) |
+| Decompiled scripts | `<unity-work>/TI_Ships_Extracted/ExportedProject/Assets/Scripts/Assembly-CSharp/PavonisInteractive/TerraInvicta/` |
+| AnimatorControllers | `<unity-work>/TI_Ships_Extracted/ExportedProject/Assets/AnimatorController/Earth_Fin_Radiator.controller` |
+| GameAssemblies (recovery) | `<unity-work>/TI_Ships_Extracted/AuxiliaryFiles/GameAssemblies/Assembly-CSharp.dll` |
+| Player.log | `<SteamLibrary>/steamapps/compatdata/1176470/pfx/drive_c/users/steamuser/AppData/LocalLow/Pavonis Interactive/TerraInvicta/Player.log` |
+| Workshop content root | `<SteamLibrary>/steamapps/workshop/content/1176470/` |
+| Expanse Ships Mod workshop | `<SteamLibrary>/steamapps/workshop/content/1176470/3490333915/` (mod ID `3490333915`) - reference for working custom hull integration |
+| Expanse Ships Mod DLL | `<SteamLibrary>/steamapps/workshop/content/1176470/3490333915/ExpanseShipsModActual.dll` - decompile with dnSpy for canonical custom-hull DLL pattern |
+| Expanse Ships Mod bundle | `<SteamLibrary>/steamapps/workshop/content/1176470/3490333915/expanseshipsmod` - UnityPy comparison reference for material/texture/shader serialization |
 
 ---
 
@@ -1283,16 +1287,16 @@ If on game start the log shows hundreds of `"Bad hull module placement"` or `"Ba
 
 | Token | Type.Method | BK Patch |
 |---|---|---|
-| — | `AssetLoader.InstantiatePrefab` | — (components baked in bundle) |
-| — | `ShipModelController.BuildShip` | — (orchestrator) |
-| — | `HumanShipController.SetSkin` | `SetSkinSkipPatch` (Prefix returns false for Hybrid/FullCustom — preserves edit-time baked materials per §18) |
-| — | `HumanShipController.SetRadiators` | — |
-| — | `ShipModelController.SetRadiatorEmissiveKelvinRange` | — |
-| `0x0600254F` | `ShipModelController.BuildDrives` | `DriveVariantPatch` (Postfix — activates the matching baked variant child) |
-| `0x06000F15` | `TIDriveTemplate.modelResource()` | `DriveVisualPatch` (Postfix — for FullCustom replaces path with `<bundle>/<drivePrefab>`; for Hybrid/PatchOnly with `vanillaDriveDataName` substitutes the alias) |
-| `0x0600254A` | `ShipModelController.SetDrive` | — |
-| `0x06002551` | `ShipModelController.BuildWeapons` | — |
-| `0x06002543` | `ShipModelController.AddExplosions` | — |
+| - | `AssetLoader.InstantiatePrefab` | - (components baked in bundle) |
+| - | `ShipModelController.BuildShip` | - (orchestrator) |
+| - | `HumanShipController.SetSkin` | `SetSkinSkipPatch` (Prefix returns false for Hybrid/FullCustom - preserves edit-time baked materials per §18) |
+| - | `HumanShipController.SetRadiators` | - |
+| - | `ShipModelController.SetRadiatorEmissiveKelvinRange` | - |
+| `0x0600254F` | `ShipModelController.BuildDrives` | `DriveVariantPatch` (Postfix - activates the matching baked variant child) |
+| `0x06000F15` | `TIDriveTemplate.modelResource()` | `DriveVisualPatch` (Postfix - for FullCustom replaces path with `<bundle>/<drivePrefab>`; for Hybrid/PatchOnly with `vanillaDriveDataName` substitutes the alias) |
+| `0x0600254A` | `ShipModelController.SetDrive` | - |
+| `0x06002551` | `ShipModelController.BuildWeapons` | - |
+| `0x06002543` | `ShipModelController.AddExplosions` | - |
 
 ### Per-Hull Controllers
 
@@ -1300,8 +1304,8 @@ If on game start the log shows hundreds of `"Bad hull module placement"` or `"Ba
 |---|---|---|
 | `0x060024D1` | `BattlecruiserController.SlotToWeaponMountIndex` | Battlecruiser (ScoutCruiser bundle) |
 | `0x060024ED` | `LancerController.SlotToWeaponMountIndex` | Lancer (NewBattleCruiser bundle) |
-| — | `TitanController.SlotToWeaponMountIndex` | Titan (NewBattleShip bundle) |
-| — | `DreadnoughtController.SlotToWeaponMountIndex` | HeavyCruiser (PatchOnly alias to Dreadnought) |
+| - | `TitanController.SlotToWeaponMountIndex` | Titan (NewBattleShip bundle) |
+| - | `DreadnoughtController.SlotToWeaponMountIndex` | HeavyCruiser (PatchOnly alias to Dreadnought) |
 
 ### Asset System
 
@@ -1316,8 +1320,8 @@ If on game start the log shows hundreds of `"Bad hull module placement"` or `"Ba
 | Token | Type.Method | BK Patch |
 |---|---|---|
 | `0x06003F73` | `TIHabState.IsModuleAllowedForHab` | BuildLimitPatch (F1/F2) |
-| — | `TIFactionState.GetCurrentMiningMultiplierFromOrgsAndEffects` | MiningPatch (F3) |
-| — | `TIFactionState.get_SafeMineNextworkSize` | MiningPatch (F4) |
+| - | `TIFactionState.GetCurrentMiningMultiplierFromOrgsAndEffects` | MiningPatch (F3) |
+| - | `TIFactionState.get_SafeMineNextworkSize` | MiningPatch (F4) |
 
 ### Nozzle/Weapon/VFX
 
@@ -1347,14 +1351,14 @@ All BK logs are prefixed with `[ExpandedFleetsAndNavies]` (added by `Main.Log`/`
 
 | Pattern | Meaning |
 |---|---|
-| `"<Registry>: entry from '<mod>' missing '<field>' — skipped."` | Required field absent in cfg entry |
-| `"HullRegistry: <dataName> from '<mod>' has no bundleName, drivePrefab, or vanillaDriveDataName — skipped."` | Useless entry (none of the three mode-determining fields set) |
-| `"HullRegistry: <dataName> from '<mod>' has drivePrefab without bundleName — skipped."` | Invalid combination |
-| `"HullRegistry: <dataName> from '<mod>' is FullCustom mode — cross-bundle shader rendering is fragile."` | Parse-time warning on FullCustom hulls |
-| `"HullRegistry: dataName '<X>' from <mod> already registered — first-wins (skipped)."` | Duplicate dataName collision |
+| `"<Registry>: entry from '<mod>' missing '<field>' - skipped."` | Required field absent in cfg entry |
+| `"HullRegistry: <dataName> from '<mod>' has no bundleName, drivePrefab, or vanillaDriveDataName - skipped."` | Useless entry (none of the three mode-determining fields set) |
+| `"HullRegistry: <dataName> from '<mod>' has drivePrefab without bundleName - skipped."` | Invalid combination |
+| `"HullRegistry: <dataName> from '<mod>' is FullCustom mode - cross-bundle shader rendering is fragile."` | Parse-time warning on FullCustom hulls |
+| `"HullRegistry: dataName '<X>' from <mod> already registered - first-wins (skipped)."` | Duplicate dataName collision |
 | `"ControllerRegistry: SlotToWeaponMountIndex not found ..."` | controllerClass typo or game update renamed class |
-| `"ConfigReader: '<field>' on '<dataName>' is <type>, expected Integer — ignored."` | Wrong-type value in custom hab field |
-| `"ConfigReader: '<field>' on '<dataName>' is negative (<n>) — ignored."` | Negative value rejected |
+| `"ConfigReader: '<field>' on '<dataName>' is <type>, expected Integer - ignored."` | Wrong-type value in custom hab field |
+| `"ConfigReader: '<field>' on '<dataName>' is negative (<n>) - ignored."` | Negative value rejected |
 
 ### BK Runtime Patch Logs
 
@@ -1367,15 +1371,15 @@ All BK logs are prefixed with `[ExpandedFleetsAndNavies]` (added by `Main.Log`/`
 
 | Pattern | Meaning |
 |---|---|
-| `"Bundle not found! bundle name: <n>"` | Bundle not loaded — check manifest deployment |
-| `"No asset found for <bundle/asset>"` | Bundle loaded but asset absent — wrong asset name or bundle didn't include it |
+| `"Bundle not found! bundle name: <n>"` | Bundle not loaded - check manifest deployment |
+| `"No asset found for <bundle/asset>"` | Bundle loaded but asset absent - wrong asset name or bundle didn't include it |
 | `"Invalid asset path \"<path>\" expected BUNDLE/ASSET format"` | Path missing `/` separator |
 | `"Bad hull module placement"` / `"Bad utility module placement"` | Slot array vs save mismatch (see §9) |
 | `"Bad requiredProjectName: X for ship part Y"` | requiredProjectName references nonexistent project |
 
 ### Diagnostic Flow
 
-1. `grep "[ExpandedFleetsAndNavies]" Player.log` — did mod load?
+1. `grep "[ExpandedFleetsAndNavies]" Player.log` - did mod load?
 2. Check `ConfigReader: scanned`, `HullRegistry: scanned`, `ControllerRegistry: scanned` counts.
 3. Vanilla build chain: `"ADDING HULL MODEL"` → `"FINISHED ADDING OBJECTS"` → `"ADDING WEAPONS"` → `"ASSIGNING THRUSTER POINTS"` → `"BUILDING DRIVES"` → `"Building Weapon"`
 4. If crash after `"ADDING OBJECTS"` → child naming or nesting wrong.
@@ -1402,13 +1406,13 @@ No instant hab construction command. Use `buildTime_Days: 1` for testing.
 ## 14. Radiator Animation System
 
 Three shared human AnimatorControllers used across ALL hulls:
-- `Earth_Fin_Radiator` — fin radiators (Radiator3/4/6/8/9/12/130/430/730/1030)
-- `Earth_Droplet_Radiator` — droplet radiators (Droplet4/8/12)
-- `Earth_Spikes_Radiator` — spike radiators (spikes 3/6/9/12)
+- `Earth_Fin_Radiator` - fin radiators (Radiator3/4/6/8/9/12/130/430/730/1030)
+- `Earth_Droplet_Radiator` - droplet radiators (Droplet4/8/12)
+- `Earth_Spikes_Radiator` - spike radiators (spikes 3/6/9/12)
 
 Each contains one state ("Extend") with one animation clip. The clip contains compressed joint transform data (13-274 generic bindings depending on radiator type, 35-joint bone chains for fins).
 
-Controllers are present as standalone assets in the AssetRipper-extracted project at `Assets/AnimatorController/`. Baked into prefab Animator components — no manual extraction needed.
+Controllers are present as standalone assets in the AssetRipper-extracted project at `Assets/AnimatorController/`. Baked into prefab Animator components - no manual extraction needed.
 
 ### SetRadiators flow
 
@@ -1417,7 +1421,7 @@ Controllers are present as standalone assets in the AssetRipper-extracted projec
 3. `GetComponent<Animator>()` on active GOs → `radiatorAnimators` list
 4. `.Play("Extend", 0, 1f)` on each (fully-extended state, normalized time = 1)
 5. `GetComponent<ColorAnimationEffect>()` on active GOs → `radiatorEmissivesFx` list
-6. `SetRadiatorEmissiveKelvinRange()` → `SetColors()` on each — drives the `_EmissionColor` shader uniform
+6. `SetRadiatorEmissiveKelvinRange()` → `SetColors()` on each - drives the `_EmissionColor` shader uniform
 
 ---
 
@@ -1426,26 +1430,26 @@ Controllers are present as standalone assets in the AssetRipper-extracted projec
 | Field | Type | Default | Notes |
 |---|---|---|---|
 | `m_useScaledGameTimeCheck` | `bool` (private, [SerializeField], [Tooltip]) | false (default) | Checked OnEnable only |
-| `m_squareIntensity` | `bool` (private, [SerializeField]) | `true` | — |
+| `m_squareIntensity` | `bool` (private, [SerializeField]) | `true` | - |
 | `m_blendMode` | `ColorBlendMode` (private, [SerializeField]) | `MULTIPLICATIVE` | enum {OVERRIDE=0, ADDITIVE=1, MULTIPLICATIVE=2} |
 | `m_colorAnimation` | `Gradient` (private, [SerializeField], [GradientUsage(true)]) | Serialized by Unity when baked | Crash chain if null: `SetColors()` → `m_colorAnimation.SetKeys()` → NullRef |
-| `m_intensityAnimation` | `AnimationCurve` (private, [SerializeField]) | `new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(1f, 0f))` | — |
-| `m_duration` | `float` (private, [SerializeField]) | `1f` | — |
-| `m_targetRenderers` | `Renderer[]` (private, [SerializeField]) | `new Renderer[0]` | — |
-| `m_targetUniformName` | `string` (private, [SerializeField]) | `"_EmissionColor"` | — |
+| `m_intensityAnimation` | `AnimationCurve` (private, [SerializeField]) | `new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(1f, 0f))` | - |
+| `m_duration` | `float` (private, [SerializeField]) | `1f` | - |
+| `m_targetRenderers` | `Renderer[]` (private, [SerializeField]) | `new Renderer[0]` | - |
+| `m_targetUniformName` | `string` (private, [SerializeField]) | `"_EmissionColor"` | - |
 
 Internal:
-- `m_targetUniform` (int) — set in `Awake()` via `Shader.PropertyToID(m_targetUniformName)`
-- `m_targetMaterials` (`List<(Material, Color)>`) — populated in `OnPlay`
-- `m_progress` (float), `m_reversed` (bool), `m_useScaledTime` (bool), `m_gameTime` (GameTimeManager) — runtime state
+- `m_targetUniform` (int) - set in `Awake()` via `Shader.PropertyToID(m_targetUniformName)`
+- `m_targetMaterials` (`List<(Material, Color)>`) - populated in `OnPlay`
+- `m_progress` (float), `m_reversed` (bool), `m_useScaledTime` (bool), `m_gameTime` (GameTimeManager) - runtime state
 
-Awake() sets `m_targetUniform = Shader.PropertyToID(m_targetUniformName)` — runs automatically.
+Awake() sets `m_targetUniform = Shader.PropertyToID(m_targetUniformName)` - runs automatically.
 
 ---
 
 ## 16. ShipTools Editor Menu
 
-`Assets/Editor/ShipTools.cs` in the extracted Unity project. Editor-only — never included in bundles.
+`Assets/Editor/ShipTools.cs` in the extracted Unity project. Editor-only - never included in bundles.
 
 **Class structure**: top-level `public class ShipTools` (no namespace), plus 5 nested/co-defined types: `Importer` (nested AssetPostprocessor), `CreateHullWindow`, `FactionSkinWindow`, `FactionPromptWindow`, `DrivePrefixPromptWindow` (all EditorWindows).
 
@@ -1460,11 +1464,11 @@ Awake() sets `m_targetUniform = Shader.PropertyToID(m_targetUniformName)` — ru
 | 3 | `Ship Tools/Setup/3. Reimport Hull Textures as DXT` | `ReimportHullTexturesAsDxt()` | Iterates ALL `t:Texture2D`, filters via `Importer.IsHullTexture(path)` (path starts with `Assets/Texture2D/` OR contains `/Resources/objects/`). Applies `Importer.ApplyDxtFormat`: DXT5 if alpha, DXT1 otherwise; Standalone platform setting overridden + Compressed. Reports `scope/conv/ok/err` counts. |
 | 4 | `Ship Tools/Setup/4. Write Drive Prefix Sidecars (one-time fix)` | `WriteDrivePrefixSidecars()` | One-time backfill for legacy hulls (Battlecruiser, Lancer, Titan) that predate the `.driveprefix` sidecar pattern. Writes correct prefix values so `BakeDriveVariants` can resolve `Earth_<prefix>_<variant>` meshes. Idempotent. |
 
-**Hull group** (per-hull authoring — note source order: 1, 3, 2 — but menu order is 1, 2, 3):
+**Hull group** (per-hull authoring - note source order: 1, 3, 2 - but menu order is 1, 2, 3):
 
 | # | Menu Path | Source Method | Action |
 |---|---|---|---|
-| 5 | `Ship Tools/Hull/1. Create Hull From Vanilla` | `CreateHullFromVanilla()` → `CreateHullWindow.Open()` → `ExecuteCreateHull()` | Select vanilla `.prefab` in Project panel → modal-style EditorWindow (420×170 fixed) with `ShowUtility()` (because `ShowModal()` is broken on Linux Unity 2020.3.49f1 — see §20). Window has 3 fields: Hull Name (focused on open, Enter submits), Bundle (auto = `hullName.ToLower()`, disabled), Faction Skin (popup, default = `resist` index 5). On Create: `EnsureBundleSettings()` → instantiate prefab → unpack completely → rename body mesh parent (`Earth_Hull_*` or `Hull_*` → `Hull`) → save as `Assets/<hullName>.prefab` → tag bundle → `WriteFactionSidecar()` and `WriteDrivePrefixSidecar()` BEFORE bake → `BakeFactionSkin()`. |
+| 5 | `Ship Tools/Hull/1. Create Hull From Vanilla` | `CreateHullFromVanilla()` → `CreateHullWindow.Open()` → `ExecuteCreateHull()` | Select vanilla `.prefab` in Project panel → modal-style EditorWindow (420×170 fixed) with `ShowUtility()` (because `ShowModal()` is broken on Linux Unity 2020.3.49f1 - see §20). Window has 3 fields: Hull Name (focused on open, Enter submits), Bundle (auto = `hullName.ToLower()`, disabled), Faction Skin (popup, default = `resist` index 5). On Create: `EnsureBundleSettings()` → instantiate prefab → unpack completely → rename body mesh parent (`Earth_Hull_*` or `Hull_*` → `Hull`) → save as `Assets/<hullName>.prefab` → tag bundle → `WriteFactionSidecar()` and `WriteDrivePrefixSidecar()` BEFORE bake → `BakeFactionSkin()`. |
 | 6 | `Ship Tools/Hull/2. Add Weapon Mount` | `AddWeaponMount()` | Multi-select duplicate of existing weapon mount(s) in Hierarchy. Per-mount validation: must have parent, must have ≥1 child (Gun), Gun must have ≥1 child (FirePoint). `FieldNameForMount(name)` matches lowercased name against substrings: `dorsal` → `dorsalHullWeaponControllers`, `ventral` → `ventralHullWeaponControllers`, `nose` → `noseWeaponControllers`. `GenerateNextName()` parses trailing space-separated number, increments past highest sibling. Duplicates with `Object.Instantiate(src, parent)` → renames root `<core> <n>` → renames Gun child `<newName> Gun` → renames FirePoint grandchild → `SetSiblingIndex(srcIdx + 1)` (sibling order = weapon array index in hierarchy). `RegisterMountInController()` finds the ship controller via `FindShipController()` (component on root with all 3 weapon arrays in SerializedObject), inserts the new `ShipWeaponVisController` into the matching SerializedProperty array. |
 | 7 | `Ship Tools/Hull/3. Set Faction Skin` | `SetFactionSkin()` → `FactionSkinWindow.Open()` → `ApplyFactionSkinChange()` | Re-bake an existing hull's faction skin. Selection accepts both Project-panel asset OR Hierarchy instance (uses `PrefabUtility.GetCorrespondingObjectFromSource()` for instance case). Reads existing sidecar via `ReadFactionSidecar(path)` to pre-select dropdown to current faction (defaults to `resist`). FactionSkinWindow is 360×120 fixed-size with Apply/Cancel. Apply calls `WriteFactionSidecar()` + `BakeFactionSkin()` + `AssetDatabase.SaveAssets()`. |
 
@@ -1478,8 +1482,8 @@ Awake() sets `m_targetUniform = Shader.PropertyToID(m_targetUniformName)` — ru
 ### Constants and config
 
 ```csharp
-static readonly string BundleOutPath = "/home/kyle/Desktop/BundleOut";
-static readonly string DeployPath    = "/mnt/steamgames/SteamLibrary/steamapps/common/Terra Invicta/Mods/Enabled/ExpandedFleetsAndNavies";
+static readonly string BundleOutPath = "<bundle-out>";
+static readonly string DeployPath    = "<game>/Mods/Enabled/ExpandedFleetsAndNavies";
 
 const int LayerIgnoreRaycast = 2;       // Unity built-in; root expected
 const int LayerHurtBox       = 17;      // Custom; Drive child expected
@@ -1521,16 +1525,16 @@ ShipTools writes two sidecar files next to each hull prefab to persist edit-time
 | `<hullname>.driveprefix` | Drive variant prefix (e.g. `Battlecruiser`) | `BakeDriveVariants` |
 
 Both follow the same API pattern:
-- `SidecarPathFor(prefabPath)` / `DrivePrefixSidecarPathFor(prefabPath)` — builds `<dir>/<name>.<ext>` path
-- `Write*Sidecar(path, value)` — writes value + calls `AssetDatabase.ImportAsset`
-- `Read*Sidecar(path)` — returns trimmed value or null (with try/catch)
-- `PromptAndCreateSidecar(path)` / `DrivePrefixPromptWindow.Open()` — prompts when build hits a sidecar-less hull
+- `SidecarPathFor(prefabPath)` / `DrivePrefixSidecarPathFor(prefabPath)` - builds `<dir>/<name>.<ext>` path
+- `Write*Sidecar(path, value)` - writes value + calls `AssetDatabase.ImportAsset`
+- `Read*Sidecar(path)` - returns trimmed value or null (with try/catch)
+- `PromptAndCreateSidecar(path)` / `DrivePrefixPromptWindow.Open()` - prompts when build hits a sidecar-less hull
 
 Sidecars are written BEFORE the bake in `ExecuteCreateHull` so first build has them in place. The `Finalize and Ship` pipeline auto-detects missing sidecars and prompts the user once per hull, then proceeds.
 
 ### Importer (nested AssetPostprocessor)
 
-`ShipTools.Importer : AssetPostprocessor` — Unity automatically calls this on every texture import. `OnPreprocessTexture` always disables `streamingMipmaps`, then calls `ApplyDxtFormat()` if `IsHullTexture()` matches. Hull textures imported AFTER ShipTools.cs is added to the project automatically get the right settings — no manual reimport for new textures.
+`ShipTools.Importer : AssetPostprocessor` - Unity automatically calls this on every texture import. `OnPreprocessTexture` always disables `streamingMipmaps`, then calls `ApplyDxtFormat()` if `IsHullTexture()` matches. Hull textures imported AFTER ShipTools.cs is added to the project automatically get the right settings - no manual reimport for new textures.
 
 ### EditorWindow workarounds for Linux Unity
 
@@ -1545,13 +1549,13 @@ while (!w.done)
 }
 ```
 
-`ShowModal()` is broken on Linux Unity 2020.3.49f1 (deadlocks the editor — see §20). The polling approach with 50ms sleeps + manual `Repaint` avoids it. `OnDestroy` sets `done = true` so window-close-via-X also unblocks.
+`ShowModal()` is broken on Linux Unity 2020.3.49f1 (deadlocks the editor - see §20). The polling approach with 50ms sleeps + manual `Repaint` avoids it. `OnDestroy` sets `done = true` so window-close-via-X also unblocks.
 
 ### Workflow summary
 
-1. **One-time setup**: Setup/1 (strip tags) → Setup/2 (disable streaming) — only on first opening of extracted project. Setup/3 (DXT reimport) is run if hull textures need format fixing. Setup/4 is a one-time backfill for legacy hulls and can be removed once no longer needed.
-2. **Per-hull authoring**: Hull/1 (Create from Vanilla — opens window, picks faction, writes sidecars, auto-bakes) → manually arrange weapon mounts in Hierarchy → Hull/2 (Add Weapon Mount) for each desired mount → save scene to prefab.
-3. **Per-build**: Verify Hull (debug check) → Finalize and Ship (one click — re-bakes faction + drive variants, builds, deploys).
+1. **One-time setup**: Setup/1 (strip tags) → Setup/2 (disable streaming) - only on first opening of extracted project. Setup/3 (DXT reimport) is run if hull textures need format fixing. Setup/4 is a one-time backfill for legacy hulls and can be removed once no longer needed.
+2. **Per-hull authoring**: Hull/1 (Create from Vanilla - opens window, picks faction, writes sidecars, auto-bakes) → manually arrange weapon mounts in Hierarchy → Hull/2 (Add Weapon Mount) for each desired mount → save scene to prefab.
+3. **Per-build**: Verify Hull (debug check) → Finalize and Ship (one click - re-bakes faction + drive variants, builds, deploys).
 4. **Per-faction-change**: Hull/3 (Set Faction Skin) → updates sidecar + re-bakes immediately.
 
 ---
@@ -1667,15 +1671,15 @@ public override int SlotToWeaponMountIndex(int slot, Mount mount)
 }
 ```
 
-### Alien Controllers (vanilla — for reference)
+### Alien Controllers (vanilla - for reference)
 
 Alien hulls inherit from `AlienShipController` (parallel hierarchy to `HumanShipController`). They are not touched by BK.
 
-**AlienBattlecruiserController** — slots 7,8,9,10,13,16 with mount-conditional logic and a `Log.Warn` on fallthrough for diagnostic visibility.
+**AlienBattlecruiserController** - slots 7,8,9,10,13,16 with mount-conditional logic and a `Log.Warn` on fallthrough for diagnostic visibility.
 
-**AlienBattleshipController** — slots 7,8,9,10,12,13,16,17 with `Mount.OneNose` special handling on slots 7-8.
+**AlienBattleshipController** - slots 7,8,9,10,12,13,16,17 with `Mount.OneNose` special handling on slots 7-8.
 
-**AlienCruiserController** — overrides `WhichRadiators` with waste-heat-aware logic (uses radiator1030/130 for low heat, all four for high heat).
+**AlienCruiserController** - overrides `WhichRadiators` with waste-heat-aware logic (uses radiator1030/130 for low heat, all four for high heat).
 
 ---
 
@@ -1697,13 +1701,13 @@ ShipTools writes a `<hullName>.faction` text file alongside `<hullName>.prefab` 
 
 The bake tool walks every MeshRenderer in the prefab and tries to load `Assets/Material/MAT_{child.gameObject.name}_{faction}.mat`. If the file exists, assign it. If not, skip.
 
-This matches vanilla's own SetSkin convention (`MAT_{name}{suffix}`). The material filename carries the identity — no subtree containers, no canonical structure, no rename step, no pattern detection. Works on any hull regardless of body mesh naming convention (`Earth_Hull_*` or `Hull_*`).
+This matches vanilla's own SetSkin convention (`MAT_{name}{suffix}`). The material filename carries the identity - no subtree containers, no canonical structure, no rename step, no pattern detection. Works on any hull regardless of body mesh naming convention (`Earth_Hull_*` or `Hull_*`).
 
-**Filter effect:** Only children whose names match a real material file get baked. Weapon-placeholder Hull children (`base_medium`, `medium_railgun_battery`), radiators, drives, and other non-body geometry have no matching faction material and are left untouched — they keep whatever material they already have from vanilla.
+**Filter effect:** Only children whose names match a real material file get baked. Weapon-placeholder Hull children (`base_medium`, `medium_railgun_battery`), radiators, drives, and other non-body geometry have no matching faction material and are left untouched - they keep whatever material they already have from vanilla.
 
 ### EditPrefabContentsScope pattern
 
-Unity's canonical pattern for batch-editing a prefab asset without instantiating it in a scene (Unity 2020.1+). Loads the prefab into an isolated preview scene, returns the root GameObject for editing, and on `Dispose()` auto-saves to the .prefab file and unloads the preview scene. Exception-safe — scope cleans up even if the edit code throws.
+Unity's canonical pattern for batch-editing a prefab asset without instantiating it in a scene (Unity 2020.1+). Loads the prefab into an isolated preview scene, returns the root GameObject for editing, and on `Dispose()` auto-saves to the .prefab file and unloads the preview scene. Exception-safe - scope cleans up even if the edit code throws.
 
 ```csharp
 using (var scope = new PrefabUtility.EditPrefabContentsScope(assetPath))
@@ -1719,17 +1723,17 @@ using (var scope = new PrefabUtility.EditPrefabContentsScope(assetPath))
 } // auto-saves and unloads here
 ```
 
-**Use `sharedMaterial` not `material`.** `.material` is forbidden on prefab assets — it clones the material at edit time which breaks the reference chain. `.sharedMaterial` assigns the reference directly.
+**Use `sharedMaterial` not `material`.** `.material` is forbidden on prefab assets - it clones the material at edit time which breaks the reference chain. `.sharedMaterial` assigns the reference directly.
 
-**No manual `AssetDatabase.SaveAssets()` needed** — scope disposal handles the write. No Undo either (preview scene is destroyed on scope exit; Undo doesn't track preview scene changes).
+**No manual `AssetDatabase.SaveAssets()` needed** - scope disposal handles the write. No Undo either (preview scene is destroyed on scope exit; Undo doesn't track preview scene changes).
 
 ### Baked bundle size
 
-Bundle size with baked materials is larger than expected. For Battlecruiser, the baked ScoutCruiser bundle is **115MB** (vs. ~50MB estimate in early planning). This is because AssetRipper's "Group By Asset Type" extraction mode resolves materials from multiple faction bundles into one project, and Unity's dependency walker may include dependency chains beyond the single faction's materials. The bundle still loads correctly in TI — size is an optimization concern, not a correctness concern.
+Bundle size with baked materials is larger than expected. For Battlecruiser, the baked ScoutCruiser bundle is **115MB** (vs. ~50MB estimate in early planning). This is because AssetRipper's "Group By Asset Type" extraction mode resolves materials from multiple faction bundles into one project, and Unity's dependency walker may include dependency chains beyond the single faction's materials. The bundle still loads correctly in TI - size is an optimization concern, not a correctness concern.
 
 ### Multi-faction deployment
 
-With `factionSkin: None` and an edit-time bake of one faction's materials (e.g., `resist`), all players see the same faction appearance regardless of their faction. This is a simplification vs. vanilla's per-faction rendering — acceptable for BK's scope.
+With `factionSkin: None` and an edit-time bake of one faction's materials (e.g., `resist`), all players see the same faction appearance regardless of their faction. This is a simplification vs. vanilla's per-faction rendering - acceptable for BK's scope.
 
 For per-faction appearance in a future expansion: bake each faction separately into its own prefab variant, build as separate bundles or bundle variants, and load the correct variant based on `ship.designingFaction` at registration time. Not implemented.
 
@@ -1745,8 +1749,8 @@ For per-faction appearance in a future expansion: bake each faction separately i
 | `PrefabUtility.UnpackPrefabInstance(go, Completely, Action)` | Fully disconnects instance from prefab source | Doesn't break material GUID refs |
 | `PrefabUtility.SaveAsPrefabAsset(go, path)` | Saves scene GO as prefab asset (disconnected) | Scene instance is no longer a prefab instance |
 | `PrefabUtility.SaveAsPrefabAssetAndConnect(go, path, action)` | Saves and keeps scene instance connected | Changes on instance become prefab overrides, applied back via standard Unity machinery |
-| `PrefabUtility.EditPrefabContentsScope` | Canonical batch-edit of prefab asset | Disposable struct — auto-loads, auto-saves, auto-unloads. Unity 2020.1+. Exception-safe. |
-| `PrefabUtility.LoadPrefabContents(path)` | Lower-level manual load into preview scene | **Crashes editor on non-existent path** — validate with `AssetDatabase.LoadAssetAtPath<GameObject>(path) != null` first. Manual pair: `LoadPrefabContents` → edit → `SaveAsPrefabAsset` → `UnloadPrefabContents`. Prefer the Scope version. |
+| `PrefabUtility.EditPrefabContentsScope` | Canonical batch-edit of prefab asset | Disposable struct - auto-loads, auto-saves, auto-unloads. Unity 2020.1+. Exception-safe. |
+| `PrefabUtility.LoadPrefabContents(path)` | Lower-level manual load into preview scene | **Crashes editor on non-existent path** - validate with `AssetDatabase.LoadAssetAtPath<GameObject>(path) != null` first. Manual pair: `LoadPrefabContents` → edit → `SaveAsPrefabAsset` → `UnloadPrefabContents`. Prefer the Scope version. |
 | `PrefabUtility.IsPartOfPrefabAsset(go)` | True if GO is a prefab asset (not instance) | Canonical menu validator for asset-mode operations. Greys out menu when a scene instance or nothing is selected. |
 
 ### Menu Validator Pattern
@@ -1770,8 +1774,8 @@ The second `MenuItem` with `validate: true` is called before the menu renders. R
 | Flag | Effect |
 |---|---|
 | `ForceRebuildAssetBundle` | Rebuild even if cache says content is unchanged |
-| `DeterministicAssetBundle` | Stable internal IDs across rebuilds — recommended for iteration |
-| `ChunkBasedCompression` | LZ4 (chunk-based) instead of LZMA (full-file). Recommended for local bundles loaded via `LoadFromFile`. Not currently used by BK — LZMA default works. |
+| `DeterministicAssetBundle` | Stable internal IDs across rebuilds - recommended for iteration |
+| `ChunkBasedCompression` | LZ4 (chunk-based) instead of LZMA (full-file). Recommended for local bundles loaded via `LoadFromFile`. Not currently used by BK - LZMA default works. |
 | `UncompressedAssetBundle` | No compression. Largest file, fastest load. Not recommended. |
 
 ### SerializedObject pattern for ProjectSettings
@@ -1830,27 +1834,27 @@ for o in env.objects:
         break
 ```
 
-**Comparison pattern:** run the same inspection script against both the BK bundle and the Expanse Ships Mod bundle (`…/workshop/content/1176470/3490333915/expanseshipsmod`). Diff the outputs. Any field that differs is a candidate for investigation.
+**Comparison pattern:** run the same inspection script against both the BK bundle and the Expanse Ships Mod bundle (`<SteamLibrary>/steamapps/workshop/content/1176470/3490333915/expanseshipsmod`). Diff the outputs. Any field that differs is a candidate for investigation.
 
 **Reading shader PathIDs:** PathIDs are stable hash-derived identifiers. If two bundles reference the same shader, the PathID will match exactly. Standard shader's PathID at the time of writing is `-4850512016903265157`. Matching PathIDs across bundles confirms they're referencing the same shader instance.
 
 **Limitations:**
 - UnityPy reads serialized state, not runtime state. It won't catch issues that only manifest at GPU sampling time.
-- It can't verify whether a texture's mip levels actually load at runtime — only that the texture is present and has metadata indicating streaming-on or streaming-off.
+- It can't verify whether a texture's mip levels actually load at runtime - only that the texture is present and has metadata indicating streaming-on or streaming-off.
 - For runtime-only issues, the Unity editor Play Mode test is the next escalation level after UnityPy inspection.
 
 ---
 
 ## 20. Environment Quirks
 
-### Linux Unity (CachyOS, Unity Editor 2020.3.49f1)
+### Linux Unity (Unity Editor 2020.3.49f1)
 
 | Quirk | Symptom | Fix |
 |---|---|---|
 | `EditorWindow.ShowModal()` broken | First modal dialog works, second returns silently with null values | Use non-modal `EditorWindow.ShowUtility()` with single-field windows. Never chain modals. |
 | AssetBundle build crypto errors | Roslyn culture crash during build | `openssl-1.1` (AUR) + `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1` env var |
 | Unity licensing (kernel 6.19+) | Cannot activate license | `patchelf --clear-execstack` on `libbindings.so` |
-| Unity editor launch | — | `unity -projectPath ~/Desktop/Ships/TI_Ships_Extracted/ExportedProject` (TI_Recovery project is empty — use TI_Ships_Extracted) |
+| Unity editor launch | - | `unity -projectPath <unity-work>/TI_Ships_Extracted/ExportedProject` (TI_Recovery project is empty - use TI_Ships_Extracted) |
 
 ### dnSpy (dnSpyEx under Wine)
 
@@ -1862,7 +1866,7 @@ for o in env.objects:
 
 ### Fish shell
 
-No heredoc support — use `echo '...' >` for multi-line writes, or use `view`/`create_file` tools to write files directly.
+No heredoc support - use `echo '...' >` for multi-line writes, or use `view`/`create_file` tools to write files directly.
 
 ### UMM launch
 
@@ -1883,9 +1887,9 @@ BK's existing project file overrides like `{"dataName": "Project_Warships", "fri
 
 | Template Type | Save Load Behavior | Implication |
 |---|---|---|
-| `TIProjectTemplate` | NULL-SAFE — `TemplateManager.Find<TIProjectTemplate>(name, false)` returns null silently if missing, and the load loop `if (tiprojectTemplate != null) availableProjects.Add(...)` skips them | Renaming/removing projects is save-compatible |
-| `TITechTemplate` | NULL-SAFE — same pattern | Renaming/removing techs is save-compatible |
-| `TIShipHullTemplate` | NOT NULL-SAFE — `TISpaceShipTemplate.hullTemplate` getter and other code paths access `.alien` and other properties without null checks | **Renaming hulls is SAVE-BREAKING** |
+| `TIProjectTemplate` | NULL-SAFE - `TemplateManager.Find<TIProjectTemplate>(name, false)` returns null silently if missing, and the load loop `if (tiprojectTemplate != null) availableProjects.Add(...)` skips them | Renaming/removing projects is save-compatible |
+| `TITechTemplate` | NULL-SAFE - same pattern | Renaming/removing techs is save-compatible |
+| `TIShipHullTemplate` | NOT NULL-SAFE - `TISpaceShipTemplate.hullTemplate` getter and other code paths access `.alien` and other properties without null checks | **Renaming hulls is SAVE-BREAKING** |
 | `TIShipModuleTemplate` (drives, weapons, utilities, etc.) | NOT NULL-SAFE in some paths | Renaming may be save-breaking depending on which fields are touched |
 
 ### Save-Breaking Change Indicators
@@ -1910,7 +1914,7 @@ Recall from §2: `requiredProjectName == null` (or pointing at a missing project
 **Save implications:**
 - Changing `requiredProjectName` from a real project to a missing project = unlocks the hull (UNINTENDED if you're trying to lock it)
 - Changing from missing to a real project = locks the hull
-- Either change is save-compatible in terms of crashing — but gameplay is affected
+- Either change is save-compatible in terms of crashing - but gameplay is affected
 
 **To safely lock a hull:** point `requiredProjectName` at a real project that is hard to research. BK uses `Project_VanillaShipsLoophole` with restrictive parameters.
 
@@ -1943,7 +1947,7 @@ The asymmetry between human and alien factions for null `requiredProject` is pre
 
 ## 22. Ship Asset Bundle and Engine Load Pipeline
 
-This section documents the end-to-end runtime pipeline from disk to rendered ship — bundle discovery, prefab instantiation, controller wiring, animation systems, weapon firing. The goal is reproducible understanding of what TI/Unity needs to spawn and animate a ship hull.
+This section documents the end-to-end runtime pipeline from disk to rendered ship - bundle discovery, prefab instantiation, controller wiring, animation systems, weapon firing. The goal is reproducible understanding of what TI/Unity needs to spawn and animate a ship hull.
 
 ### 22.1 Pipeline overview (the 30-second view)
 
@@ -2007,7 +2011,7 @@ Mods/Enabled/
                              DamageLayer.Update (shader uniform refresh)
 ```
 
-**Key observation**: Bundle loading happens ONCE at game start (all bundles loaded eagerly). Prefab instantiation happens on-demand per ship via `GameControl.assetLoader.InstantiatePrefab`. There is no streaming, no lazy bundle load — everything is in memory.
+**Key observation**: Bundle loading happens ONCE at game start (all bundles loaded eagerly). Prefab instantiation happens on-demand per ship via `GameControl.assetLoader.InstantiatePrefab`. There is no streaming, no lazy bundle load - everything is in memory.
 
 ### 22.2 Disk → Loaded bundle
 
@@ -2104,10 +2108,10 @@ public static void Initialize()
 ```
 
 **Key facts**:
-- **All bundles loaded eagerly at game start** — no lazy loading. Memory cost is upfront.
+- **All bundles loaded eagerly at game start** - no lazy loading. Memory cost is upfront.
 - **Mod bundles load AFTER vanilla bundles**. If a mod bundle has the same name as a vanilla bundle, `Add()` will throw a duplicate-key exception. (DLC bundles handle this via `ContainsKey` check + Remove + Add; mods do NOT.)
-- **Bundle name comes from the bundle file itself** (`bundle.name`), not from the file path. Set by `AssetImporter.assetBundleName` at build time. ShipTools sets bundle name to `hullName.ToLower()` — so `Lancer.prefab` → bundle name `"newbattlecruiser"` (the bundle name on the file is what `LoadFromFile` reads).
-- **No CRC verification at load time** — TI just calls `LoadFromFile` and trusts the bundle. The CRC in the .manifest is informational (used by Unity's editor for incremental builds, not by runtime).
+- **Bundle name comes from the bundle file itself** (`bundle.name`), not from the file path. Set by `AssetImporter.assetBundleName` at build time. ShipTools sets bundle name to `hullName.ToLower()` - so `Lancer.prefab` → bundle name `"newbattlecruiser"` (the bundle name on the file is what `LoadFromFile` reads).
+- **No CRC verification at load time** - TI just calls `LoadFromFile` and trusts the bundle. The CRC in the .manifest is informational (used by Unity's editor for incremental builds, not by runtime).
 - **`UnloadAssetBundle` exists** but `unloadAllLoadedObjects: false` means already-instantiated prefabs remain valid after unload. Useful for memory management but BK never calls it.
 
 #### Asset retrieval (AssetBundleManager.cs:68-87) 
@@ -2137,13 +2141,13 @@ public static T LoadAsset<T>(string assetPath) where T : Object
 **Asset path format is `BUNDLE/ASSET`** with `/` separator:
 - Bundle name is lowercased before lookup (matches Unity's bundle name convention)
 - Asset name is preserved as-is (matches the prefab's actual name in the bundle)
-- Example: `"newbattlecruiser/NewBattleCruiser"` — bundle "newbattlecruiser" → prefab "NewBattleCruiser"
+- Example: `"newbattlecruiser/NewBattleCruiser"` - bundle "newbattlecruiser" → prefab "NewBattleCruiser"
 
 See §12 for log messages from this method.
 
 #### `GameControl.assetLoader.LoadAsset` and `InstantiatePrefab` 
 
-`AssetLoader` (`AssetLoader.cs`, 83 lines, NOT in Pavonis namespace — global type). Plain class (no MonoBehaviour). Thin wrapper around `AssetBundleManager` with one minor cache for UI sprites.
+`AssetLoader` (`AssetLoader.cs`, 83 lines, NOT in Pavonis namespace - global type). Plain class (no MonoBehaviour). Thin wrapper around `AssetBundleManager` with one minor cache for UI sprites.
 
 **Key methods**:
 
@@ -2176,23 +2180,23 @@ public void LoadAssetForImageAssignment(string asset, Image imageToAssign)
     imageToAssign.sprite = sprite;
 }
 
-public void Initialize() { }                               // EMPTY — no setup logic
+public void Initialize() { }                               // EMPTY - no setup logic
 
 private Dictionary<string, Sprite> _cachedAssets = ...;    // caches UI Image sprites only
 ```
 
 **Notes**:
 
-1. `LoadAsset<T>` is pure delegation — no path translation, no error handling beyond null check.
+1. `LoadAsset<T>` is pure delegation - no path translation, no error handling beyond null check.
 2. `InstantiatePrefab` returns null on missing asset (does NOT throw). `AssetBundleManager.LoadAsset` already logs `"Bundle not found"` or `"No asset found"`. Caller is responsible for null-check.
-3. **No prefab cache** — every `InstantiatePrefab` does a fresh `LoadAsset<GameObject>` + `Object.Instantiate`. The bundle is cached, but asset extraction repeats per call.
+3. **No prefab cache** - every `InstantiatePrefab` does a fresh `LoadAsset<GameObject>` + `Object.Instantiate`. The bundle is cached, but asset extraction repeats per call.
 4. Sprite cache is UI-only (`_cachedAssets`). Other types (Texture2D, GameObject, Material) are not cached at this layer.
-5. `Object.Instantiate` is called with `Vector3.zero, Quaternion.identity` — caller is responsible for repositioning. `ShipVisController.InitializeShipVisualizer` does `base.transform.localPosition = ...` after instantiation.
+5. `Object.Instantiate` is called with `Vector3.zero, Quaternion.identity` - caller is responsible for repositioning. `ShipVisController.InitializeShipVisualizer` does `base.transform.localPosition = ...` after instantiation.
 
 **Diagnostic implications**:
 
 - "White hull": `LoadAsset<Material>` returning null means `renderer.sharedMaterial` becomes null → renders MAGENTA (not white). The "white" symptom is shader binding, not null material.
-- "No engines": hull `InstantiatePrefab` works (else ship wouldn't spawn). The drive prefab is loaded inside `SetDrive` via a separate `LoadAsset<GameObject>` — that's where engine load can fail.
+- "No engines": hull `InstantiatePrefab` works (else ship wouldn't spawn). The drive prefab is loaded inside `SetDrive` via a separate `LoadAsset<GameObject>` - that's where engine load can fail.
 - "No thrusters": `AssetCacheManager.thrusterFXPrefabs` field initializers call `LoadAsset<GameObject>("ships/HumanThrusterBasic")` etc. at static init. If those 4 paths fail, the dictionary contains nulls, and `SetDrive`'s `Object.Instantiate(thrusterFXPrefab, ...)` throws on null prefab.
 
 ### 22.3 JSON → Built ship
@@ -2200,7 +2204,7 @@ private Dictionary<string, Sprite> _cachedAssets = ...;    // caches UI Image sp
 #### Template lookup chain
 
 When a ship is built:
-1. Player or AI selects a `TISpaceShipTemplate` (the design — TISpaceShipTemplate IS the design class; see §22.8)
+1. Player or AI selects a `TISpaceShipTemplate` (the design - TISpaceShipTemplate IS the design class; see §22.8)
 2. Build queue creates a `TISpaceShipState` with the design
 3. State has `template` typed `TISpaceShipTemplate` (computed via reflection per §1 Game-State Type Architecture)
 4. Template has `hullTemplate` (TIShipHullTemplate), `driveTemplate` (TIDriveTemplate), `radiatorTemplate`, `designingFaction`, `hullAppearanceIndex`, etc.
@@ -2235,7 +2239,7 @@ Order matters. **SetSkin runs FIRST** because vanilla SetSkin populates `hullMod
 
 #### ShipVisController.InitializeShipVisualizer (ShipVisController.cs:46-112) 
 
-This is the actual entry point — the method that takes a TISpaceShipTemplate and produces a fully-built scene instance:
+This is the actual entry point - the method that takes a TISpaceShipTemplate and produces a fully-built scene instance:
 
 ```csharp
 public void InitializeShipVisualizer(TISpaceShipTemplate shipTemplate, TISpaceShipState ship,
@@ -2303,7 +2307,7 @@ public void InitializeShipVisualizer(TISpaceShipTemplate shipTemplate, TISpaceSh
 **Critical chain**:
 1. Asset path resolved from template (`hullTemplate.modelResource[idx]`)
 2. Prefab instantiated via `assetLoader.InstantiatePrefab` (loads from bundle if not yet, instantiates into scene)
-3. `ShipModelController` component is REQUIRED on prefab root — without it, `GetComponent` returns null and subsequent calls NullReferenceException
+3. `ShipModelController` component is REQUIRED on prefab root - without it, `GetComponent` returns null and subsequent calls NullReferenceException
 4. `BuildShip` orchestrates the full pipeline (skin/drives/thrusters/radiators/weapons/explosions/shadows)
 5. Radiator color temperature is set from ship state (per-ship setting, not template)
 6. UI overlay (`Ship UI Object` from `ui_spaceCombat` bundle) is added only for combat-visible ships
@@ -2318,22 +2322,22 @@ There is also a `InitializeModelOnly` (ShipVisController.cs:14-43) for UI-only p
 - Each hull class's subclass: `BattlecruiserController`, `LancerController`, `TitanController`, `DreadnoughtController`, etc.
 - Alien controllers: `AlienBattlecruiserController`, `AlienBattleshipController`, etc.
 
-The actual concrete component on each prefab is the per-hull controller. ShipTools' `Verify Hull` uses `FindShipController()` to detect this — finds the FIRST root component with all 3 weapon array properties (noseWeaponControllers, dorsalHullWeaponControllers, ventralHullWeaponControllers).
+The actual concrete component on each prefab is the per-hull controller. ShipTools' `Verify Hull` uses `FindShipController()` to detect this - finds the FIRST root component with all 3 weapon array properties (noseWeaponControllers, dorsalHullWeaponControllers, ventralHullWeaponControllers).
 
 For BK hulls, the prefab uses one of the existing vanilla controllers (matched per §8 Hull DataName Map):
 - Lancer → LancerController
 - Battlecruiser → BattlecruiserController
 - Titan → TitanController
-- (etc. — see §8 for full map)
+- (etc. - see §8 for full map)
 
-This works because the controller class is concerned with mount index resolution (`SlotToWeaponMountIndex`) and shared visualizer logic — there's no per-hull behavior unique to a controller class beyond mount-index switch statements (§17).
+This works because the controller class is concerned with mount index resolution (`SlotToWeaponMountIndex`) and shared visualizer logic - there's no per-hull behavior unique to a controller class beyond mount-index switch statements (§17).
 
 ### 22.5 Material/skin system
 
 See §18 Edit-Time Material Bake Workflow for the full picture. Key facts here:
 
 - **Vanilla SetSkin** (HumanShipController.cs:11-29) loads `MAT_<childName><factionSuffix>` from the faction's material bundle path. Works only when the faction's material bundle is already loaded and contains the right materials.
-- **BK bypass**: `SetSkinSkipPatch` returns `false` for Hybrid/FullCustom hulls, skipping vanilla SetSkin. Materials come from edit-time bake (sharedMaterial assignment in the prefab) — bundle ships pre-baked.
+- **BK bypass**: `SetSkinSkipPatch` returns `false` for Hybrid/FullCustom hulls, skipping vanilla SetSkin. Materials come from edit-time bake (sharedMaterial assignment in the prefab) - bundle ships pre-baked.
 - **ShipTools sidecar** (`<hullname>.faction`) records last-baked faction so rebuilds use correct materials without prompting.
 - **Filename pattern** baked into ShipTools: `Assets/Material/MAT_<childRendererName>_<lowercaseFaction>.mat`
 - **Filter effect**: only renderers whose name matches a real material file get baked. Weapon-placeholder children, radiators, drives, etc. keep their vanilla materials.
@@ -2350,7 +2354,7 @@ See §18 Edit-Time Material Bake Workflow for the full picture. Key facts here:
 | Spike (long pointed) | spikes 12, spikes 3, spikes 6, spikes 9 | 4 positions (corners) |
 | Droplet (circular array) | Droplet12, Droplet8, Droplet4 | 3 positions |
 
-**Radiator selection per ship — `WhichRadiators(ship)` virtual method** (HumanShipController.cs:31-84): Each hull controller picks which radiators to activate based on `radiatorTemplate.radiatorArea_m2(ship.wasteHeat_GW)` and `ship.radiatorTemplate.radiatorType` (RadiatorType enum: Fin/Droplet/Spike). The HumanShipController canonical implementation uses these thresholds:
+**Radiator selection per ship - `WhichRadiators(ship)` virtual method** (HumanShipController.cs:31-84): Each hull controller picks which radiators to activate based on `radiatorTemplate.radiatorArea_m2(ship.wasteHeat_GW)` and `ship.radiatorTemplate.radiatorType` (RadiatorType enum: Fin/Droplet/Spike). The HumanShipController canonical implementation uses these thresholds:
 
 ```csharp
 // Source: HumanShipController.cs:31-84 (paraphrased)
@@ -2371,7 +2375,7 @@ case RadiatorType.Spike:
 
 **Alien controllers' WhichRadiators** (per `Alien<X>Controller.cs`):
 - **All alien hulls only use 4 fin radiators**: `radiator1030, radiator130, radiator430, radiator730` (the diagonal/clock-pos-30 series)
-- **No spike or droplet radiators on alien hulls** — alien hulls don't have these GameObjects on their prefabs at all
+- **No spike or droplet radiators on alien hulls** - alien hulls don't have these GameObjects on their prefabs at all
 - AlienBattlecruiser/AlienBattleship: hardcoded 4 radiators always
 - AlienCruiser/AlienAssaultCarrier: 2 vs 4 radiators based on `radiatorArea_m2(wasteHeat_GW) < 800f`
 
@@ -2402,7 +2406,7 @@ this.radiator130.SetActive(list.Contains(this.radiator130));
 // ... 17 SetActive calls
 ```
 
-`WhichRadiators(ship)` is `virtual` — overridden by hull-specific controllers to choose which radiators are visible. For BK hulls reusing vanilla controllers, the existing override determines radiator selection.
+`WhichRadiators(ship)` is `virtual` - overridden by hull-specific controllers to choose which radiators are visible. For BK hulls reusing vanilla controllers, the existing override determines radiator selection.
 
 **Animation** is via Unity Animator components on each active radiator GameObject. After `SetActive(true)`, `radiatorAnimators` list is populated:
 ```csharp
@@ -2411,9 +2415,9 @@ if (this.radiator12.activeSelf) this.radiatorAnimators.Add(this.radiator12.GetCo
 // ... 17 conditional adds
 ```
 
-The Animator runs the deploy/retract animation (Unity Animation Controller asset baked into the prefab). The animation curves are NOT in the dictionary's source archive — they're Unity .anim assets serialized into the bundle.
+The Animator runs the deploy/retract animation (Unity Animation Controller asset baked into the prefab). The animation curves are NOT in the dictionary's source archive - they're Unity .anim assets serialized into the bundle.
 
-**Radiator emissive color** (operating temperature glow): `ShipModelController.SetRadiatorEmissiveKelvinRange(295.0, operatingTemp_K)` — converts Kelvin to RGB blackbody color, applied to material. Called in InitializeShipVisualizer step 4. Higher operating temperature = whiter/bluer emissive; lower = redder.
+**Radiator emissive color** (operating temperature glow): `ShipModelController.SetRadiatorEmissiveKelvinRange(295.0, operatingTemp_K)` - converts Kelvin to RGB blackbody color, applied to material. Called in InitializeShipVisualizer step 4. Higher operating temperature = whiter/bluer emissive; lower = redder.
 
 #### Color animations (ColorAnimationEffect)
 
@@ -2496,8 +2500,8 @@ public void SetDrive(string resource, GameObject targetObject, int thrusters,
 **Notes**:
 1. **`AssetCacheManager.thrusterFXPrefabs`** is a Dictionary cache of pre-loaded thruster FX prefabs, keyed by `drive.MainThrusterFXResource(IsAlien)` path. This is loaded at game start (alongside Sprite caches in AssetCacheManager).
 2. **`thrusterEffectContainers`** (List<MultiEffectContainer>) is the runtime structure that ActivateThrusters/DeactivateThrusters operates on. NOT `thrusterLocations` directly.
-3. **Substring match for thruster naming** is permissive: `ThrusterPoint || Thruster || thruster`, but **excludes `Thruster_Alien`** — alien drives have alien-specific thrusters identified by the suffix.
-4. **`thrusters` parameter caps the FX count** — slots beyond it are deactivated.
+3. **Substring match for thruster naming** is permissive: `ThrusterPoint || Thruster || thruster`, but **excludes `Thruster_Alien`** - alien drives have alien-specific thrusters identified by the suffix.
+4. **`thrusters` parameter caps the FX count** - slots beyond it are deactivated.
 
 **Vanilla `ActivateThrusters` and `DeactivateThrusters`** (ShipModelController.cs:270-293):
 ```csharp
@@ -2555,7 +2559,7 @@ public void SetVectorThrusters(TIDriveTemplate drive, TIFactionState faction)
 
 **Notes**:
 1. **Vector thrusters are 16 total**: 12 from prefab, 4 mirrored automatically
-2. **TIVFXManager.GetVFX(path, parent)** is the canonical FX spawning method — likely a pooled instantiator
+2. **TIVFXManager.GetVFX(path, parent)** is the canonical FX spawning method - likely a pooled instantiator
 3. **Mirroring** mirrors Y axis (position/scale/rotation)
 4. **`initVectorThrusters` flag** prevents double-initialization (idempotent)
 
@@ -2564,15 +2568,15 @@ public void SetVectorThrusters(TIDriveTemplate drive, TIFactionState faction)
 #### Weapon firing pipeline 
 
 **WeaponClass enum** (per `ShipWeaponVisController.cs:Fire`, ≥5 values):
-- `WeaponClass.Laser` — beam weapon
-- `WeaponClass.Particle` — beam weapon
-- `WeaponClass.NavalGun` — projectile weapon
-- `WeaponClass.Magnetic` — projectile weapon (railguns/coilguns)
-- `WeaponClass.Plasma` — projectile weapon
+- `WeaponClass.Laser` - beam weapon
+- `WeaponClass.Particle` - beam weapon
+- `WeaponClass.NavalGun` - projectile weapon
+- `WeaponClass.Magnetic` - projectile weapon (railguns/coilguns)
+- `WeaponClass.Plasma` - projectile weapon
 
-(There may be more values, e.g. Missile — `TIMissileTemplate` is referenced separately as `weaponTemplate.ref_missileWeapon` in SetPrefabs.)
+(There may be more values, e.g. Missile - `TIMissileTemplate` is referenced separately as `weaponTemplate.ref_missileWeapon` in SetPrefabs.)
 
-**Weapon prefab init — `SetPrefabs()` (ShipWeaponVisController.cs:135-196)** :
+**Weapon prefab init - `SetPrefabs()` (ShipWeaponVisController.cs:135-196)** :
 
 ```csharp
 // Source: ShipWeaponVisController.cs:135-196 (paraphrased)
@@ -2625,7 +2629,7 @@ private void SetPrefabs()
 }
 ```
 
-**Weapon fire — `Fire(truncated, time)` (ShipWeaponVisController.cs:434-518)** :
+**Weapon fire - `Fire(truncated, time)` (ShipWeaponVisController.cs:434-518)** :
 
 ```csharp
 // Source: ShipWeaponVisController.cs:434-518 (paraphrased)
@@ -2703,14 +2707,14 @@ public void Fire(bool truncated, TIDateTime time = null)
 **Notes**:
 1. **Two distinct firing paths** based on weapon class (beam vs gun)
 2. **Beams use `BeamWeaponController` + `LineRenderer`** for the visible beam line
-3. **Guns use `shotEffectInstance` (muzzle flash effect) + `ShipWeaponMuzzleFlashController[]` array** for muzzle flashes — each flash is its own controller
+3. **Guns use `shotEffectInstance` (muzzle flash effect) + `ShipWeaponMuzzleFlashController[]` array** for muzzle flashes - each flash is its own controller
 4. **Beam burns for 2 seconds** by default in combat (1s during fast-forward strategic bombardment)
 5. **`Bombarding()`** distinguishes strategic-layer bombardment (different beam initialization with longitude/latitude/parentBody)
 6. **Audio is per-fire** via FMOD `AudioManager.CreateFMODInstance(weaponTemplate.fireSoundFXResource)`
 
 #### Damage layer 
 
-`DamageLayer`. Operates via shader uniform `_DamagePointArray` — array of damage points sent to a custom shader that displays scorch/damage effects on hull. Updated when ship takes hits during combat.
+`DamageLayer`. Operates via shader uniform `_DamagePointArray` - array of damage points sent to a custom shader that displays scorch/damage effects on hull. Updated when ship takes hits during combat.
 
 Does NOT use `_ExplosionSequenceRoot`. Explosion sequences are separate (handled by AddExplosions() in BuildShip and by individual `OnRadiatorDestroyed`/`OnWeaponDestroyed` etc. callbacks).
 
@@ -2719,13 +2723,13 @@ Does NOT use `_ExplosionSequenceRoot`. Explosion sequences are separate (handled
 `ShipModelController.AddExplosions()` is called in BuildShip and sets up the destruction visualizer.
 
 Per-component destruction:
-- Radiator: `RadiatorVisController.OnRadiatorDestroyed(radiatorsRetracted)` — instantiates explosion prefab, swaps to destroyed model
+- Radiator: `RadiatorVisController.OnRadiatorDestroyed(radiatorsRetracted)` - instantiates explosion prefab, swaps to destroyed model
 - Weapon: referenced as `OnWeaponDestroyedExplosion` / `ShipDestroyedWeaponExplosion`
 - Whole ship destruction: not yet fully traced in source
 
 ### 22.7 Weapon mount/firing pipeline
 
-#### Weapon placement at ship build — `SetWeapon` (ShipModelController.cs:1077-1109) 
+#### Weapon placement at ship build - `SetWeapon` (ShipModelController.cs:1077-1109) 
 
 ```csharp
 // Source: ShipModelController.cs:1077-1109 (paraphrased)
@@ -2775,13 +2779,13 @@ public static void SetWeapon(string resource, ShipVisController parentController
    - `prefab` → has `MeshFilter` + `MeshRenderer` (base mount: turret base, hardpoint)
    - `prefab.child[0]` → weapon body (gun barrel, beam emitter, missile launcher)
    - `prefab.child[0].child[0]` → FirePoint (transform marker; spawn location for projectiles/beams)
-2. **Mesh/material swap, not Instantiate** — `SetWeapon` reuses the existing GameObject hierarchy from the hull prefab, swapping in the weapon prefab's data. This is why the hull prefab must have empty mount slots with the right component layout.
+2. **Mesh/material swap, not Instantiate** - `SetWeapon` reuses the existing GameObject hierarchy from the hull prefab, swapping in the weapon prefab's data. This is why the hull prefab must have empty mount slots with the right component layout.
 3. **At edit time**, ShipTools.AddWeaponMount creates this layout by walking weapon mount children with `nose`/`dorsal`/`ventral` substring matching:
    - Sets `controller.baseObject = controller.gameObject` (mount root)
    - Sets `controller.weaponObject = controller.transform.GetChild(0).gameObject` (gun child)
    - Sets `controller.firePoint = controller.weaponObject.transform.GetChild(0).gameObject` (FirePoint grandchild)
 
-**`SetShipPart(resource, targetObject)`** (ShipModelController.cs:1066-1074) — utility for non-weapon parts (utility modules, etc.):
+**`SetShipPart(resource, targetObject)`** (ShipModelController.cs:1066-1074) - utility for non-weapon parts (utility modules, etc.):
 ```csharp
 public static void SetShipPart(string resource, GameObject targetObject)
 {
@@ -2801,18 +2805,18 @@ public static void SetShipPart(string resource, GameObject targetObject)
 
 #### Runtime fire pipeline 
 
-1. Combat AI or player issues fire order — sets `target` via `SetTarget(IDamageable, Vector3)` or `SetStratLayerTarget(...)`
+1. Combat AI or player issues fire order - sets `target` via `SetTarget(IDamageable, Vector3)` or `SetStratLayerTarget(...)`
 2. `ShipWeaponVisController.Fire(truncated, time)` called per weapon (see §22.6 Weapon firing pipeline for full Fire body)
 3. Branch by `weaponTemplate.weaponClass`:
    - **Beam (Laser/Particle)**: enable `BeamWeaponController`, configure `LineRenderer`, set 2-second auto-cease timer
    - **Gun (NavalGun/Magnetic/Plasma)**: enable shotEffectInstance (muzzle flash), call `Flash()` on each `ShipWeaponMuzzleFlashController`
 4. Audio plays via FMOD `AudioManager.CreateFMODInstance(weaponTemplate.fireSoundFXResource)`
-5. Hit detection happens in separate combat code (CombatantController, not ship visualizer) — projectile spawning likely happens via separate timer/Update tick using `projectilePrefab` loaded in SetPrefabs
+5. Hit detection happens in separate combat code (CombatantController, not ship visualizer) - projectile spawning likely happens via separate timer/Update tick using `projectilePrefab` loaded in SetPrefabs
 6. DamageLayer update on target ship (shader uniform `_DamagePointArray` refresh)
 
 ### 22.8 Ship designs (TISpaceShipTemplate)
 
-**Note**: There is NO separate `TISpaceShipDesign.cs` — `TISpaceShipTemplate` IS the ship design class. It extends `TIDataTemplate` (TISpaceShipTemplate.cs:10). 4,904 lines / 168KB — by far the largest single template file in TI.
+**Note**: There is NO separate `TISpaceShipDesign.cs` - `TISpaceShipTemplate` IS the ship design class. It extends `TIDataTemplate` (TISpaceShipTemplate.cs:10). 4,904 lines / 168KB - by far the largest single template file in TI.
 
 #### Class structure
 
@@ -2840,12 +2844,12 @@ public int propellantTanks;         // number of propellant tanks
 public int refitIteration;          // refit suffix counter
 public int hullAppearanceIndex;     // index into hullTemplate.modelResource[]
 
-// Armor — separate facing structures (NOT just template names)
+// Armor - separate facing structures (NOT just template names)
 public ArmorFacingTemplate noseArmor;
 public ArmorFacingTemplate lateralArmor;
 public ArmorFacingTemplate tailArmor;
 
-// Slot-by-slot module lists — THE CORE OF SHIP DESIGN
+// Slot-by-slot module lists - THE CORE OF SHIP DESIGN
 public List<ModuleDataTemplateEntry> moduleTemplateEntries;     // utility modules per slot
 public List<ModuleDataTemplateEntry> hullWeaponTemplateEntries; // hull weapons per slot
 public List<ModuleDataTemplateEntry> noseWeaponTemplateEntries; // nose weapons per slot
@@ -2872,14 +2876,14 @@ public const int numRotationalThrusters = 2;
 public const float StandardAlienShipStrength = 100f;
 ```
 
-**Key insight**: A ship design is **NOT** specified by `hullTemplateName`/`driveTemplateName`/etc. as I previously documented. The actual JSON fields are `hullName`, `driveName`, `powerPlantName`, `radiatorName`, `factionName` (no "Template" suffix). These are then resolved lazily through `TemplateManager.Find<T>(name, false)` getters.
+**Key insight**: A ship design is **NOT** specified by `hullTemplateName`/`driveTemplateName`/etc. The actual JSON fields are `hullName`, `driveName`, `powerPlantName`, `radiatorName`, `factionName` (no "Template" suffix). These are then resolved lazily through `TemplateManager.Find<T>(name, false)` getters.
 
 #### Lazy template resolution 
 
 All template references use the **lazy-load + null-find pattern**:
 
 ```csharp
-// Source: TISpaceShipTemplate.cs:177-188 (paraphrased — pattern repeated for all templates)
+// Source: TISpaceShipTemplate.cs:177-188 (paraphrased - pattern repeated for all templates)
 private TIShipHullTemplate _hullTemplate;
 public TIShipHullTemplate hullTemplate
 {
@@ -2892,9 +2896,9 @@ public TIShipHullTemplate hullTemplate
 }
 ```
 
-**Critical implication**: `TemplateManager.Find<T>(name, false)` returns null when name doesn't match. The hullTemplate property does NOT null-check — the very first usage of `hullTemplate.X` after a load with a missing hull will throw NullReferenceException. This is what breaks saves when BK renames hulls (§21).
+**Critical implication**: `TemplateManager.Find<T>(name, false)` returns null when name doesn't match. The hullTemplate property does NOT null-check - the very first usage of `hullTemplate.X` after a load with a missing hull will throw NullReferenceException. This is what breaks saves when BK renames hulls (§21).
 
-#### `modelResource` — the asset path used for prefab instantiation 
+#### `modelResource` - the asset path used for prefab instantiation 
 
 ```csharp
 // Source: TISpaceShipTemplate.cs:146-152
@@ -2910,19 +2914,19 @@ public string modelResource
 This is the EXACT property used by `ShipVisController.InitializeShipVisualizer` to load the prefab. The chain is:
 - `template.modelResource` → reads `template.hullTemplate.modelResource[hullAppearanceIndex]`
 - `template.hullTemplate` triggers TemplateManager lookup if not cached
-- `TIShipHullTemplate.modelResource` is `string[]` (one entry per faction skin) — see §1
+- `TIShipHullTemplate.modelResource` is `string[]` (one entry per faction skin) - see §1
 - `hullAppearanceIndex` selects which entry
 
 **For BK hulls** (factionSkin: None, single modelResource entry): `hullAppearanceIndex` is always 0 effectively, since the array has only one entry.
 
-#### Ship designs are NOT a separate template type — they're TISpaceShipTemplate JSON entries
+#### Ship designs are NOT a separate template type - they're TISpaceShipTemplate JSON entries
 
 A "ship design" in TI terminology is just **a TISpaceShipTemplate entry in TISpaceShipTemplate.json**. The template name (e.g., `Ship1`, `Ship2`, ..., `Ship33` for vanilla AI designs, or custom names for player-designed ships) is its dataName. `factionName` field identifies the owning faction. Player-designed ships are saved as TISpaceShipTemplate entries dynamically into the save game (NOT into JSON files).
 
 This means:
 1. Adding a new vanilla design = adding a new entry to TISpaceShipTemplate.json with `dataName: "Ship34"`, hull/drive/power/radiator names, slot module entries
 2. Player ship design = same structure, saved to player save file
-3. AI doesn't "design" ships at runtime — it picks from existing TISpaceShipTemplate entries that match its needs (via `AllowedRole(role)` and `FitsRole(role)`)
+3. AI doesn't "design" ships at runtime - it picks from existing TISpaceShipTemplate entries that match its needs (via `AllowedRole(role)` and `FitsRole(role)`)
 
 #### `ModuleDataTemplateEntry` and `FireModeDataTemplateEntry`  usage, structure
 
@@ -2933,7 +2937,7 @@ Each entry slot in the design holds a `ModuleDataTemplateEntry` (slot index + mo
 - `noseWeaponTemplateEntries` → weapons in nose slots
 - `fireModeTemplateEntries` → fire mode override per weapon slot (FireMode enum)
 
-The split between hull and nose weapons in separate lists is significant — they're NOT in a single weapons array. Hull controllers' `SlotToWeaponMountIndex(int slot, Mount mount)` (per §17) maps slot indices to mount transform indices on the prefab — but the slot index space is unified across utility + nose + hull (slots 0-N), so each entry must carry its own slot-index field to know where it goes.
+The split between hull and nose weapons in separate lists is significant - they're NOT in a single weapons array. Hull controllers' `SlotToWeaponMountIndex(int slot, Mount mount)` (per §17) maps slot indices to mount transform indices on the prefab - but the slot index space is unified across utility + nose + hull (slots 0-N), so each entry must carry its own slot-index field to know where it goes.
 
 Field layout (from source):
 
@@ -2965,12 +2969,12 @@ public class ModuleDataEntry                    // ModuleDataEntry.cs (runtime)
 
 #### Design-time validation methods 
 
-- **`ValidPartForDesign(TIShipPartTemplate part) : bool`** (line 1745) — checks if a part can be added to this design. Validates: drive compatibility (utility modules need compatible drive), laser/particle bonus requires matching weapon class on ship, grouping uniqueness (only one utility per grouping), hull has utility slots, hull's consTier ≥ part's minConsTier.
-- **`ValidAssignedSlotForLocation(TIShipPartTemplate, int slot)`** (line 1106) — validates slot index against part's allowed locations
-- **`SlotIndexOccupied(int slotIndex, bool testSecondarySlotsForWeapons) : bool`** — overlap check
-- **`GetPartInHullSlotIndex(int slotIndex, ...)`** — retrieve which part is in a specific slot
-- **`validDrivesForPowerPlant : List<TIDriveTemplate>`** — auto-computed list of compatible drives given power plant choice
-- **`IsAValidRefitFor(TISpaceShipTemplate oldShipTemplate, out string reason, bool getReason = false)`** — refit validation
+- **`ValidPartForDesign(TIShipPartTemplate part) : bool`** (line 1745) - checks if a part can be added to this design. Validates: drive compatibility (utility modules need compatible drive), laser/particle bonus requires matching weapon class on ship, grouping uniqueness (only one utility per grouping), hull has utility slots, hull's consTier ≥ part's minConsTier.
+- **`ValidAssignedSlotForLocation(TIShipPartTemplate, int slot)`** (line 1106) - validates slot index against part's allowed locations
+- **`SlotIndexOccupied(int slotIndex, bool testSecondarySlotsForWeapons) : bool`** - overlap check
+- **`GetPartInHullSlotIndex(int slotIndex, ...)`** - retrieve which part is in a specific slot
+- **`validDrivesForPowerPlant : List<TIDriveTemplate>`** - auto-computed list of compatible drives given power plant choice
+- **`IsAValidRefitFor(TISpaceShipTemplate oldShipTemplate, out string reason, bool getReason = false)`** - refit validation
 - **`AreUtilityModulesValidForRefit(...)`**, **`AreWeaponModulesValidForRefit(...)`**
 
 #### Computed/cached properties (auto-populated, not JSON) 
@@ -3098,9 +3102,9 @@ SL_Defender, SM_Patrol, SS_Interceptor        // Short-range Light/Medium/Short
 ```
 
 Naming convention: `<Range><ClassSize>_<RoleType>`. **Static categorizers**:
-- `shortRangeStrategic(role) / mediumRangeStrategic / longRangeStrategic` — strategic-range categorization
-- `shortRangeCombatant / mediumRangeCombatant / longRangeCombatant` — combatant-range
-- `SoloOperator(role) : bool` — whether role operates solo vs in fleet
+- `shortRangeStrategic(role) / mediumRangeStrategic / longRangeStrategic` - strategic-range categorization
+- `shortRangeCombatant / mediumRangeCombatant / longRangeCombatant` - combatant-range
+- `SoloOperator(role) : bool` - whether role operates solo vs in fleet
 
 **Range constants**: `shortRange_km = 200f`, `mediumRange_km = 500f`, `longRange_km = 800f`
 
@@ -3123,22 +3127,22 @@ Naming convention: `<Range><ClassSize>_<RoleType>`. **Static categorizers**:
 
 #### Static helpers / utilities 
 
-- `Clone(string dataName, string factionName)` — duplicate template with new identity
-- `CreateDummyShip()` — instantiate dummy TISpaceShipState (for previews)
-- `InitAtRunTime(bool skipNaming = false)` — runtime init after JSON load
-- `CacheTemplateValues(bool skipCost = false)` — pre-compute all derived values
-- `ReCacheUtilityModules()` — invalidate utility module cache (after changes)
-- `IsDuplicateOf(TISpaceShipTemplate other) : bool` — duplicate detection
-- `ShouldObsolete(TIFactionState faction)`, `Obsolete(TIFactionState faction)` — design retirement
-- `quickSummary(...)`, `DebugSummary()` — UI/log output
-- `GenerateRandomClassName(TIFactionTemplate faction)` — random ship class name generator
-- `GetRefitSuffix(int iteration)` — refit naming (R1, R2, R3, ...)
-- `static ClearStaticData()`, `static ClearUnusedTemplates()` — cleanup
-- `static GenerateTestCombats()` — combat balance testing helper
+- `Clone(string dataName, string factionName)` - duplicate template with new identity
+- `CreateDummyShip()` - instantiate dummy TISpaceShipState (for previews)
+- `InitAtRunTime(bool skipNaming = false)` - runtime init after JSON load
+- `CacheTemplateValues(bool skipCost = false)` - pre-compute all derived values
+- `ReCacheUtilityModules()` - invalidate utility module cache (after changes)
+- `IsDuplicateOf(TISpaceShipTemplate other) : bool` - duplicate detection
+- `ShouldObsolete(TIFactionState faction)`, `Obsolete(TIFactionState faction)` - design retirement
+- `quickSummary(...)`, `DebugSummary()` - UI/log output
+- `GenerateRandomClassName(TIFactionTemplate faction)` - random ship class name generator
+- `GetRefitSuffix(int iteration)` - refit naming (R1, R2, R3, ...)
+- `static ClearStaticData()`, `static ClearUnusedTemplates()` - cleanup
+- `static GenerateTestCombats()` - combat balance testing helper
 
 #### Why this matters for BK
 
-BK's `TIShipHullTemplate.json` defines hulls. `TISpaceShipTemplate.json` defines designs. **They are DIFFERENT files referencing each other** — a design references a hull by `hullName`. BK currently doesn't add custom designs (it uses vanilla designs that get hulls via `factionAvailableChance` + `requiredProjectName` gating in TIShipHullTemplate). 
+BK's `TIShipHullTemplate.json` defines hulls. `TISpaceShipTemplate.json` defines designs. **They are DIFFERENT files referencing each other** - a design references a hull by `hullName`. BK currently doesn't add custom designs (it uses vanilla designs that get hulls via `factionAvailableChance` + `requiredProjectName` gating in TIShipHullTemplate). 
 
 If BK ever wants to add custom AI ship designs (e.g., a specific weapon loadout AI should prefer for Titan hulls):
 1. Add new entries to `TISpaceShipTemplate.json` with `hullName: "Titan"`, picked drive/power/radiator, populated `noseWeaponTemplateEntries`/`hullWeaponTemplateEntries`/`moduleTemplateEntries`
@@ -3152,11 +3156,11 @@ If BK ever wants to add custom AI ship designs (e.g., a specific weapon loadout 
 
 ## 23. Hull Editing Pipeline
 
-This section is the practical guide for editing ship hulls — slot layout, weapon mount placement, and the cross-cutting concerns (prefab hierarchy, JSON template, controller switch). It synthesizes §16 (ShipTools), §17 (SlotToWeaponMountIndex), §22 (full pipeline), and the BK `HullRegistry`/`ControllerRegistry`/`WeaponMountPatch` infrastructure.
+This section is the practical guide for editing ship hulls - slot layout, weapon mount placement, and the cross-cutting concerns (prefab hierarchy, JSON template, controller switch). It synthesizes §16 (ShipTools), §17 (SlotToWeaponMountIndex), §22 (full pipeline), and the BK `HullRegistry`/`ControllerRegistry`/`WeaponMountPatch` infrastructure.
 
 **Goal**: enable a modder to take a 3D ship model from extracted TI assets, modify its mount/slot layout, save it as a new BK hull, and have it work end-to-end.
 
-### 23.1 The 3 places ship layout is defined — must stay in sync
+### 23.1 The 3 places ship layout is defined - must stay in sync
 
 Editing a hull means coordinating changes across THREE separate definitions. Mismatch between them is the #1 source of bugs.
 
@@ -3174,14 +3178,14 @@ When a ship is rendered in combat, vanilla code does:
 
 **Therefore**: changing a mount's sibling index in the prefab → changes its array index → potentially breaks the controller's mapping. Adding a new mount → extends the array → the controller must know to map a new slot to it.
 
-### 23.2 Slot vs Index — the terminology trap
+### 23.2 Slot vs Index - the terminology trap
 
 These two concepts are easy to confuse and the cfg/JSON uses both:
 
 - **Slot** = JSON-defined logical position. In `shipModuleSlots[N]`, the slot's "slot index" is `N` (its position in the array). Slots have type (HullHardPoint, NoseHardPoint, Utility, Drive, etc.) and (x,y) grid coordinates.
 - **Index** (mount index) = position in the prefab's per-side weapon controller array (noseWeaponControllers[index], dorsalHullWeaponControllers[index], ventralHullWeaponControllers[index]). Determined by sibling order under the hull root.
 
-`SlotToWeaponMountIndex(int slot, Mount mount) → int` is the bridge: takes a slot-index + Mount enum (telling it the Mount layout), returns mount-index. The Mount enum encodes whether the SAME slot is rendered as 1 nose / 2 nose horizontal / 4 hull / etc. — different Mount values for the same slot map to different mount-indices.
+`SlotToWeaponMountIndex(int slot, Mount mount) → int` is the bridge: takes a slot-index + Mount enum (telling it the Mount layout), returns mount-index. The Mount enum encodes whether the SAME slot is rendered as 1 nose / 2 nose horizontal / 4 hull / etc. - different Mount values for the same slot map to different mount-indices.
 
 **Mount enum** (12 named values):
 ```
@@ -3196,7 +3200,7 @@ HalfNose, HalfHull
 - TitanController checks "is it FourNose, FourHull, HalfNose, or HalfHull" → values 9, 10, 11, 12
 - LancerController checks "is it HalfNose or HalfHull" → values 11, 12
 - This gives the inferred enum order: `OneNose=0, OneHull=1, TwoNoseHoriz=2, TwoNoseVert=3, TwoHullHoriz=4, TwoHullVert=5, ThreeNoseAngle=6, ThreeHullHoriz=7, ?=8, FourNose=9, FourHull=10, HalfNose=11, HalfHull=12`
-- Position 8 is unknown — there are exactly 12 NAMED values in source but the numeric pattern requires one at position 8. It may be `Mount.None` (a default/invalid value not used in any switch case).
+- Position 8 is unknown - there are exactly 12 NAMED values in source but the numeric pattern requires one at position 8. It may be `Mount.None` (a default/invalid value not used in any switch case).
 
 ### 23.3 Current ShipTools `Add Weapon Mount` capability and limits
 
@@ -3207,7 +3211,7 @@ HalfNose, HalfHull
 3. **Naming gate**: name must contain `nose`/`dorsal`/`ventral` substring
 4. **Duplication**: `Object.Instantiate(src, parent)` clones the mount including all components
 5. **Auto-naming**: appends incrementing number (`<core> 2`, `<core> 3`, ...)
-6. **Sibling placement**: `SetSiblingIndex(srcIdx + 1)` — places immediately after source
+6. **Sibling placement**: `SetSiblingIndex(srcIdx + 1)` - places immediately after source
 7. **Component registration**: finds ship controller via SerializedObject duck-type (looks for any component with all 3 weapon array properties), inserts new mount's `ShipWeaponVisController` into the matching SerializedProperty array
 
 **What it does well**:
@@ -3221,8 +3225,8 @@ HalfNose, HalfHull
 - ❌ **Reorder mounts** (sibling index changes are manual; controller array index changes are manual)
 - ❌ **Add mounts of a NEW type** to a hull that has none of that type (requires knowing the controller field name to register into; current code derives field name from the mount's existing name)
 - ❌ **Bulk operations** (e.g., "rebuild all mount registrations from current hierarchy")
-- ❌ **JSON sync** — `shipModuleSlots` array in TIShipHullTemplate.json must be edited manually after prefab changes
-- ❌ **Mount index → slot mapping update** — HullDefinitions.cfg must be edited manually
+- ❌ **JSON sync** - `shipModuleSlots` array in TIShipHullTemplate.json must be edited manually after prefab changes
+- ❌ **Mount index → slot mapping update** - HullDefinitions.cfg must be edited manually
 
 ### 23.4 Slot index = JSON array position
 
@@ -3239,17 +3243,17 @@ public bool ValidAssignedSlotForLocation(TIShipPartTemplate partTemplate, int sl
 }
 ```
 
-**The `slot` integer is the direct array index into `hullTemplate.shipModuleSlots`.** It is NOT a separate slot ID, NOT a slot name, NOT a Vector2 coordinate — just an int that says "the Nth slot in the JSON array."
+**The `slot` integer is the direct array index into `hullTemplate.shipModuleSlots`.** It is NOT a separate slot ID, NOT a slot name, NOT a Vector2 coordinate - just an int that says "the Nth slot in the JSON array."
 
 **Implications**:
 1. Slot 0 in JSON = slot index 0 at runtime
 2. Reordering the array reorders the slot indices
 3. Inserting a slot anywhere except the END shifts all subsequent indices
-4. The `weaponSlotMap` in `HullDefinitions.cfg` references these same indices — they MUST stay in sync with the JSON array order
+4. The `weaponSlotMap` in `HullDefinitions.cfg` references these same indices - they MUST stay in sync with the JSON array order
 
 ### 23.5 The utility/weapon interleave problem ⚠️ SAVE-BREAKING TRAP
 
-**The JSON `shipModuleSlots` array contains ALL slot types interleaved** — Drive, PowerPlant, Utility, Radiator, NoseHardPoint, HullHardPoint, NoseArmor, LateralArmor, TailArmor — in arbitrary order. From BK's existing `TIShipHullTemplate.json`:
+**The JSON `shipModuleSlots` array contains ALL slot types interleaved** - Drive, PowerPlant, Utility, Radiator, NoseHardPoint, HullHardPoint, NoseArmor, LateralArmor, TailArmor - in arbitrary order. From BK's existing `TIShipHullTemplate.json`:
 
 ```json
 "shipModuleSlots": [
@@ -3266,7 +3270,7 @@ public bool ValidAssignedSlotForLocation(TIShipPartTemplate partTemplate, int sl
 
 **The trap**: Adding a utility slot in the MIDDLE of the array shifts every subsequent slot index. **Every weapon currently positioned with `slot: 8` in any TISpaceShipTemplate JSON entry would now refer to a different physical slot.**
 
-**Worked example — Lancer style hull**:
+**Worked example - Lancer style hull**:
 
 Before edit:
 ```
@@ -3287,12 +3291,12 @@ User adds a new Utility slot in position 3 (between PowerPlant and Radiator):
 [0] Drive
 [1] PowerPlant
 [2] Utility
-[3] Utility       ← NEW — inserted here
+[3] Utility       ← NEW - inserted here
 [4] Radiator      ← was [3]
 [5] TailArmor     ← was [4]
 [6] LateralArmor  ← was [5]
 [7] NoseArmor     ← was [6]
-[8] NoseHardPoint ← was [7]  — weapon designs with slot:7 now resolve to NoseArmor!
+[8] NoseHardPoint ← was [7]  - weapon designs with slot:7 now resolve to NoseArmor!
 [9] HullHardPoint ← was [8]
 [10] HullHardPoint ← was [9]
 ```
@@ -3334,7 +3338,7 @@ private void BuildWeapons(ShipVisController parentController, TISpaceShipTemplat
     
     foreach (ModuleDataEntry moduleDataEntry in ship.noseWeapons) { ... }    // ONLY weapons
     foreach (ModuleDataEntry moduleDataEntry2 in ship.hullWeapons) { ... }   // ONLY weapons
-    // NO iteration over ship.utilityModules — utility modules NEVER visualized
+    // NO iteration over ship.utilityModules - utility modules NEVER visualized
 }
 ```
 
@@ -3367,7 +3371,7 @@ public void CacheTemplateValues(bool skipCost = false)
 
 **6 properties get recomputed in this exact order**, each with `forceUpdate=true`. The `_xxx = -1f` sentinel pattern (per §22.8) is invalidated by `forceUpdate`.
 
-**When is `CacheTemplateValues` called?** Search results show it's called in `TIFactionState` and ship-design UI flows after design changes. Not called automatically when JSON changes — JSON values are read fresh each time.
+**When is `CacheTemplateValues` called?** Search results show it's called in `TIFactionState` and ship-design UI flows after design changes. Not called automatically when JSON changes - JSON values are read fresh each time.
 
 **For a modder**: After editing JSON `shipModuleSlots`, restart the game. JSON is loaded fresh; ship templates are re-instantiated. Cached values are invalidated by template recreation. **No manual recompute needed for JSON edits.**
 
@@ -3383,17 +3387,17 @@ When weapon mount counts change between hull versions:
 - Beam controllers have `BeamWeaponController.Initialize(target)` which assumes the controller is wired
 
 **Damage allocation impact**:
-- DamageLayer uses `_DamagePointArray` shader uniform — this operates on the prefab's overall hull mesh, NOT per-mount
+- DamageLayer uses `_DamagePointArray` shader uniform - this operates on the prefab's overall hull mesh, NOT per-mount
 - Damage location is geometry-based, not mount-based
-- Removing a mount doesn't break damage layer — but if a weapon is destroyed and the controller tries to swap to "destroyed" model, missing mount = exception
+- Removing a mount doesn't break damage layer - but if a weapon is destroyed and the controller tries to swap to "destroyed" model, missing mount = exception
 
 **Thruster firing impact**:
 - `ActivateThrusters/DeactivateThrusters` operate on `thrusterEffectContainers[i]` for `i in 0..thrusters` (per §22.6)
-- Thruster count is from drive (`drive.thrusters * hullTemplate.thrusterMultiplier`) — NOT from slot count
+- Thruster count is from drive (`drive.thrusters * hullTemplate.thrusterMultiplier`) - NOT from slot count
 - **Slot changes do NOT affect thruster firing** ✓
 
 **Save-load impact** (per §21):
-- TIShipHullTemplate is NOT null-safe — slot index out of range will throw
+- TIShipHullTemplate is NOT null-safe - slot index out of range will throw
 - AI designs using removed slots: log spam, may cause AI to skip the design
 - Player designs using removed slots: ship may fail to render or crash on combat enter
 
@@ -3404,14 +3408,14 @@ For complete understanding of slot editing:
 - **§5** ShipModuleSlotType enum (10 values: Drive, PowerPlant, Utility, Radiator, NoseHardPoint, HullHardPoint, NoseArmor, LateralArmor, TailArmor, None)
 - **§16** ShipTools editor menu (current capability)
 - **§17** SlotToWeaponMountIndex per-controller switches (consumes slot index)
-- **§21** Save and load (HULL RENAMES are save-breaking — same severity as slot reordering)
+- **§21** Save and load (HULL RENAMES are save-breaking - same severity as slot reordering)
 - **§22.6** WhichRadiators algorithms (radiator slot count doesn't directly affect radiator visualization)
 - **§22.7** Weapon mount/firing pipeline (consumes slot index via SlotToWeaponMountIndex)
-- **§22.8** TISpaceShipTemplate JSON fields (`moduleTemplateEntries`, `noseWeaponTemplateEntries`, `hullWeaponTemplateEntries` — each entry has a `.slot` field that IS the JSON array index)
+- **§22.8** TISpaceShipTemplate JSON fields (`moduleTemplateEntries`, `noseWeaponTemplateEntries`, `hullWeaponTemplateEntries` - each entry has a `.slot` field that IS the JSON array index)
 
 ---
 
-## 24. Engine Expectations Reference — what TI demands of mod prefabs
+## 24. Engine Expectations Reference - what TI demands of mod prefabs
 
 This section documents **exactly what TI's runtime expects from mod hull prefabs** at the Unity component level. It's the diagnostic reference for the three known bugs (white hulls / no thrusters / no engines) and the safety net for any future hull modification.
 
@@ -3452,7 +3456,7 @@ SYMPTOM: Ship appears as solid white silhouette in combat or strategy view
 └─ CHECK 6: Are vanilla materials (cross-bundle refs) being used after edits?
              If the user copies a vanilla prefab and DOESN'T re-bake, the renderer's
              sharedMaterial points at a vanilla material in the vanilla bundle.
-             At TI runtime, the vanilla bundle IS loaded, so this CAN work — but
+             At TI runtime, the vanilla bundle IS loaded, so this CAN work - but
              only if the vanilla material asset still exists with the original GUID.
              Renaming the renderer's GameObject does NOT break this; only changing
              the material reference does.
@@ -3485,7 +3489,7 @@ SYMPTOM: Ship has drive but no flame/particle FX during burns
 │            Verify: Drive prefab has GameObjects with name containing
 │                    "Thruster" / "ThrusterPoint" / "thruster" (excluding "Thruster_Alien")
 │            Common cause: Drive prefab created via Create Hull From Vanilla copies
-│                          the hull's Drive child verbatim — so ThrusterPoint children
+│                          the hull's Drive child verbatim - so ThrusterPoint children
 │                          should be present. If user DELETED them, no FX.
 │
 ├─ CHECK 5: thrusterFXPrefabs cache contains the drive's FX path?
@@ -3497,7 +3501,7 @@ SYMPTOM: Ship has drive but no flame/particle FX during burns
 │            Source: AssetCacheManager.cs:290-308 (hardcoded dict, 4 entries)
 │            Source: TIDriveTemplate.cs:147-178 MainThrusterFXResource
 │            Note: Determined by drive's nozzle (DeLaval/Magnetic/Pulsed) + alien flag
-│            Hard limit: ONLY 4 thruster FX types possible — modders cannot add new ones
+│            Hard limit: ONLY 4 thruster FX types possible - modders cannot add new ones
 │                        without patching the dictionary (Harmony or reflection)
 │
 ├─ CHECK 5b: thrusterFXPrefabs entries are not null?
@@ -3542,7 +3546,7 @@ SYMPTOM: Imported (extracted+modified vanilla) hull renders, but the drive is in
 │
 ├─ CHECK 4: Drive prefab itself has MeshFilter + MeshRenderer on root?
 │            Verify: Open <HullName>_Drive.prefab; root has both components
-│            Note: SetDrive does loaded.GetComponent<MeshFilter>().sharedMesh — NO null check
+│            Note: SetDrive does loaded.GetComponent<MeshFilter>().sharedMesh - NO null check
 │            Common cause: User edited hull's Drive child to remove its visible mesh
 │                          (because they're using a different drive aesthetic), but
 │                          ShipTools' CreateDrivePrefab snapshots the Drive child verbatim
@@ -3574,7 +3578,7 @@ These are the components and structure TI demands. Violation = NRE or silent fai
 
 | Component | Required | Set by | Read by |
 |---|---|---|---|
-| Transform | YES (Unity baseline) | — | All |
+| Transform | YES (Unity baseline) | - | All |
 | `<X>Controller` (e.g., LancerController) extends ShipModelController | YES | Inherited from extracted vanilla | ShipVisController.GetComponent<ShipModelController>() at line 49 |
 | CapsuleCollider | YES (checked by ShipTools.VerifyHull) | Manual or extracted vanilla | TI hit detection |
 | DamageLayer | YES | Inherited from extracted vanilla | Damage shader uniform updates |
@@ -3616,7 +3620,7 @@ The `Drive` child of the hull prefab is the target for SetDrive's mesh swap:
 - ShipTools `Verify Hull` checks for ThrusterPoint children before bake
 - SetDrive's filter for `list`: child name CONTAINS `"Thruster"` OR `"ThrusterPoint"` OR `"thruster"` (excluding `"Thruster_Alien"`)
 
-Both lists must have the SAME COUNT for thruster FX to match positions correctly. If the hull's Drive child has 4 "ThrusterPoint" children but the drive prefab has 6 "Thruster" children, SetDrive's loop only iterates min(4, 6) = 4 — the extra 2 in the drive prefab are unused.
+Both lists must have the SAME COUNT for thruster FX to match positions correctly. If the hull's Drive child has 4 "ThrusterPoint" children but the drive prefab has 6 "Thruster" children, SetDrive's loop only iterates min(4, 6) = 4 - the extra 2 in the drive prefab are unused.
 
 ### 24.3 Drive prefab invariants (the separate `<HullName>_Drive.prefab`)
 
@@ -3629,8 +3633,8 @@ The drive prefab is loaded by vanilla `SetDrive` via `assetLoader.LoadAsset<Game
 | Children with `Thruster*` substring | YES (≥1) | Position template for thruster FX placement |
 
 **ShipTools' CreateDrivePrefab process** (ShipTools.cs:201-216):
-1. `transform.Find("Drive")` on the hull instance — finds the Drive child
-2. `Object.Instantiate(driveSrc.gameObject)` — clones it
+1. `transform.Find("Drive")` on the hull instance - finds the Drive child
+2. `Object.Instantiate(driveSrc.gameObject)` - clones it
 3. Names it `<HullName>_Drive`, removes parent, resets transform
 4. `PrefabUtility.SaveAsPrefabAsset` to `Assets/<HullName>_Drive.prefab`
 5. Tags the bundle name
@@ -3653,7 +3657,7 @@ This means **the drive prefab is a snapshot of the hull's Drive child**. If the 
 |---|---|
 | Vanilla material from extracted bundle (cross-bundle reference) | Works IF vanilla bundle still has it AND GUID hasn't changed |
 | Material in BK's bundle (same-bundle reference) | Works always |
-| Material referencing Standard shader | Works IF Standard NOT removed from m_AlwaysIncludedShaders (TI removes Standard, so this fails — see §4) |
+| Material referencing Standard shader | Works IF Standard NOT removed from m_AlwaysIncludedShaders (TI removes Standard, so this fails - see §4) |
 | Material referencing custom shader compiled into BK bundle | Works always |
 | Null material | Renders the **MAGENTA** error material (Unity default for missing material) |
 
@@ -3737,7 +3741,7 @@ If a ship is parked in orbit with thrusters off and you enter combat, **the thru
 
 #### Gotcha 1: `BakeFactionSkin` silent skip on renamed children (white hull cause)
 
-When you rename a renderer's GameObject after `Create Hull From Vanilla`, the bake pass silently skips it. The renderer keeps its old material — a cross-bundle reference that may or may not work at runtime.
+When you rename a renderer's GameObject after `Create Hull From Vanilla`, the bake pass silently skips it. The renderer keeps its old material - a cross-bundle reference that may or may not work at runtime.
 
 **Workaround**: Don't rename renderer GameObjects. If you must rename, ALSO create a new MAT_<newName>_<faction>.mat file in `Assets/Material/`.
 
@@ -3745,11 +3749,11 @@ When you rename a renderer's GameObject after `Create Hull From Vanilla`, the ba
 
 `CreateDrivePrefab` copies hull's Drive child verbatim. Subsequent edits to the hull's Drive child do NOT propagate to the drive prefab.
 
-**Workaround**: Re-run `Create Hull From Vanilla` to regenerate the drive prefab (this WILL overwrite your hull edits — copy them out first).
+**Workaround**: Re-run `Create Hull From Vanilla` to regenerate the drive prefab (this WILL overwrite your hull edits - copy them out first).
 
 #### Gotcha 3: Thrusters off until first burn
 
-`ActivateThrusters` is conditional on `shipState.thrustersActive`. A ship parked in orbit has thrusters off. Modders testing in combat may see "no thrusters" and assume something's broken — but if the ship hasn't been ordered to maneuver yet, thrusters being off is correct.
+`ActivateThrusters` is conditional on `shipState.thrustersActive`. A ship parked in orbit has thrusters off. Modders testing in combat may see "no thrusters" and assume something's broken - but if the ship hasn't been ordered to maneuver yet, thrusters being off is correct.
 
 **Workaround**: Order a fleet maneuver in-game; thrusters should activate. Alternatively, force thrustersActive=true via console (if available) for testing.
 
@@ -3775,22 +3779,22 @@ This section consolidates Unity component class details referenced elsewhere in 
 
 ### 25.1 ColorAnimationEffect
 
-**Class declaration**: `public class ColorAnimationEffect : AbstractEffectController` (extends an unsourced base — `AbstractEffectController` not yet in archive but we don't need its body for the inheriting class behavior).
+**Class declaration**: `public class ColorAnimationEffect : AbstractEffectController` (extends an unsourced base - `AbstractEffectController` not yet in archive but we don't need its body for the inheriting class behavior).
 
 **Public enum** ColorBlendMode:
-- `OVERRIDE = 0` — replace material color with animation color
-- `ADDITIVE = 1` — color + base color
-- `MULTIPLICATIVE = 2` — color * base color (DEFAULT)
+- `OVERRIDE = 0` - replace material color with animation color
+- `ADDITIVE = 1` - color + base color
+- `MULTIPLICATIVE = 2` - color * base color (DEFAULT)
 
-**Serialized fields** (8 total — these are the JSON-deserializable / Inspector-visible fields):
-- `m_useScaledGameTimeCheck` (bool) — only checked OnEnable; later changes ignored
-- `m_squareIntensity` (bool, default true) — `Pow(2, intensity)` instead of linear
+**Serialized fields** (8 total - these are the JSON-deserializable / Inspector-visible fields):
+- `m_useScaledGameTimeCheck` (bool) - only checked OnEnable; later changes ignored
+- `m_squareIntensity` (bool, default true) - `Pow(2, intensity)` instead of linear
 - `m_blendMode` (ColorBlendMode, default MULTIPLICATIVE)
-- `m_colorAnimation` (Gradient, GradientUsage(true) — i.e. allows HDR colors)
+- `m_colorAnimation` (Gradient, GradientUsage(true) - i.e. allows HDR colors)
 - `m_intensityAnimation` (AnimationCurve, default 0→1f to 1→0f)
-- `m_duration` (float, default 1f) — total animation length in seconds
-- `m_targetRenderers` (Renderer[]) — which renderers get the color animation
-- `m_targetUniformName` (string, default "_EmissionColor") — shader uniform to drive
+- `m_duration` (float, default 1f) - total animation length in seconds
+- `m_targetRenderers` (Renderer[]) - which renderers get the color animation
+- `m_targetUniformName` (string, default "_EmissionColor") - shader uniform to drive
 
 **Lifecycle**:
 - `Awake()`: caches `Shader.PropertyToID(m_targetUniformName)` into `m_targetUniform`
@@ -3801,7 +3805,7 @@ This section consolidates Unity component class details referenced elsewhere in 
 **Diagnostic implications**:
 - ColorAnimationEffect drives `_EmissionColor` shader uniform via `material.SetColor(m_targetUniform, color * intensity)`
 - If a material doesn't HAVE the `_EmissionColor` property, it's skipped (not added to `m_targetMaterials`)
-- For "edited extracted vanilla" hulls: if the user replaces a renderer's material with one that doesn't support `_EmissionColor`, the radiator's color animation has NO EFFECT — silent
+- For "edited extracted vanilla" hulls: if the user replaces a renderer's material with one that doesn't support `_EmissionColor`, the radiator's color animation has NO EFFECT - silent
 - The check `material.HasProperty(m_targetUniform)` is the silent-skip filter
 
 **For BK hulls**: each radiator GO has a ColorAnimationEffect component. After material baking via ShipTools, if the baked material's shader supports `_EmissionColor`, animation works. If not, radiator looks dead but doesn't error.
@@ -3815,19 +3819,19 @@ This section consolidates Unity component class details referenced elsewhere in 
 - `s_uDamagePointArrayLength = Shader.PropertyToID("_DamagePointArrayLength")`
 
 **Serialized fields**:
-- `_shipDamageMaterial` (Material) — the damage decal material template (one per ship)
-- `_shipRenderers` (Renderer[]) — array of renderers that should display damage
-- `_clearDamageOnUpdate` (bool) — if true, damage points clear every LateUpdate (for transient effects)
+- `_shipDamageMaterial` (Material) - the damage decal material template (one per ship)
+- `_shipRenderers` (Renderer[]) - array of renderers that should display damage
+- `_clearDamageOnUpdate` (bool) - if true, damage points clear every LateUpdate (for transient effects)
 
 **Runtime fields**:
-- `_originalMaterials` (Dictionary<Renderer, Material[]>) — saved materials at OnEnable
-- `_damageMaterials` (List<Material>) — instance-cloned damage materials per renderer
-- `_damagePoints` (List<Vector4>) — current damage points (max 8)
-- `refShipState` (TISpaceShipState) — captured at Start()
+- `_originalMaterials` (Dictionary<Renderer, Material[]>) - saved materials at OnEnable
+- `_damageMaterials` (List<Material>) - instance-cloned damage materials per renderer
+- `_damagePoints` (List<Vector4>) - current damage points (max 8)
+- `refShipState` (TISpaceShipState) - captured at Start()
 
 **Lifecycle**:
 
-1. **Start()**: `refShipState = GetComponent<ShipModelController>()?.GetRefShipState();` — captures ship state
+1. **Start()**: `refShipState = GetComponent<ShipModelController>()?.GetRefShipState();` - captures ship state
 2. **OnEnable()**:
    - Calls SyncDamageVisualizations (loads damagePoints from shipState)
    - For each renderer in `_shipRenderers`:
@@ -3843,12 +3847,12 @@ This section consolidates Unity component class details referenced elsewhere in 
 
 **`AddDamagePoint(hitPosition, radius, damageType)`**:
 - Calls `refShipState.SyncDamageVisuals()`
-- Clamps radius: `Mathf.Clamp(radius * (count+1) * 1.02f, 1f, 50f)` — radius grows with damage point count!
+- Clamps radius: `Mathf.Clamp(radius * (count+1) * 1.02f, 1f, 50f)` - radius grows with damage point count!
 - Packs (radius/50.1, damageType/2) into a single float via `GetPackedFloat`
 - Stores Vector4(x, y, z, packedFloat) in damagePoints
 - If count > 8: sorts by .w descending, removes lowest
 
-**`GetPackedFloat(a, b)`** — packs two normalized floats into one uint:
+**`GetPackedFloat(a, b)`** - packs two normalized floats into one uint:
 ```csharp
 uint num = (uint)(a * 65535f);
 uint num2 = (uint)(b * 65535f);
@@ -3856,14 +3860,14 @@ return (num << 16) | (num2 & 0xFFFF);
 ```
 
 **Shader uniforms passed**:
-- `_DamagePointArray` (Vector4[8]) — XYZ = world position, W = packed (radius, damageType)
-- `_DamagePointArrayLength` (int) — number of active damage points (0-8)
+- `_DamagePointArray` (Vector4[8]) - XYZ = world position, W = packed (radius, damageType)
+- `_DamagePointArrayLength` (int) - number of active damage points (0-8)
 
 **MAJOR NEW finding**: DamageLayer requires renderer's material to have `_DamagePointArray` and `_DamagePointArrayLength` shader uniforms. If material doesn't (e.g., user replaced shader): **damage decals don't appear** but combat damage still applies (it's purely cosmetic).
 
 **For modified vanilla hulls**: if user changes shader on the damage material, decals silently disappear. This is unrelated to the white-hull bug but could confuse.
 
-**Critical for BK**: `_shipRenderers` is a SerializedField — must be assigned in the Inspector at edit time. ShipTools Verify Hull doesn't currently check this. Empty array = no damage decals.
+**Critical for BK**: `_shipRenderers` is a SerializedField - must be assigned in the Inspector at edit time. ShipTools Verify Hull doesn't currently check this. Empty array = no damage decals.
 
 ### 25.3 CombatantController hierarchy
 
@@ -3875,31 +3879,31 @@ CombatantController (abstract)
     ↑
 CombatantShipController (abstract)
     ↑                       ↑
-[ship combat hierarchy]    [hab combat hierarchy via separate inheritance — see CombatHabModuleController]
+[ship combat hierarchy]    [hab combat hierarchy via separate inheritance - see CombatHabModuleController]
 ```
 
 **`CombatantController` (abstract base, 134 lines)**:
 
 Abstract members (must be implemented by subclasses):
-- `SpaceCombatAssetUIController UIController()` — combat UI for this asset
-- `CombatTargetableState GetCombatantState()` — return targetable state
-- `IDamageableType GetCombatantType()` — type discriminator
-- `Vector3 positionAtTime(DateTime currentTime)` — predicted position
-- `float ApplyDamage(DamageSource source)` — receive damage
-- `List<Collider> hitColliders` — hit detection colliders
-- `Vector3 velocityVector` — current velocity
-- `Vector3 velocityVector_kps` — velocity in km/s
-- `Vector3 accelerationVector` — current acceleration
-- `Vector3 accelerationVector_kps` — accel in km/s
-- `IDamageableType damageableType` — type discriminator
-- `CombatTargetableState combatTargetableState` — target binding
-- `float GetCrossSectionalArea_m2(float angle)` — for hit chance calculations
+- `SpaceCombatAssetUIController UIController()` - combat UI for this asset
+- `CombatTargetableState GetCombatantState()` - return targetable state
+- `IDamageableType GetCombatantType()` - type discriminator
+- `Vector3 positionAtTime(DateTime currentTime)` - predicted position
+- `float ApplyDamage(DamageSource source)` - receive damage
+- `List<Collider> hitColliders` - hit detection colliders
+- `Vector3 velocityVector` - current velocity
+- `Vector3 velocityVector_kps` - velocity in km/s
+- `Vector3 accelerationVector` - current acceleration
+- `Vector3 accelerationVector_kps` - accel in km/s
+- `IDamageableType damageableType` - type discriminator
+- `CombatTargetableState combatTargetableState` - target binding
+- `float GetCrossSectionalArea_m2(float angle)` - for hit chance calculations
 
 Concrete members (provide default behavior):
 - `bool isDestroyed` (= destructionTriggered)
 - `Vector3 position`, `Vector3 localPosition` (delegates to GetDamageableTransform)
 - `Transform IDamageable.damageableTransform` (= GetDamageableTransform)
-- `TISpaceCombatProjectileState ref_projectile` (= null by default — overridden by projectile combatants)
+- `TISpaceCombatProjectileState ref_projectile` (= null by default - overridden by projectile combatants)
 - `CombatWeaponCarrierState WeaponCarrierState` (settable by subclass)
 - `TIFactionState faction` (= WeaponCarrierState.GetFaction())
 - `bool destructionTriggered` (settable by subclass)
@@ -3917,31 +3921,31 @@ Concrete members (provide default behavior):
 - Override: `combatTargetableState` (= ShipState)
 - Override: `GetCrossSectionalArea_m2(angle)` (= ShipState.GetCrossSectionalArea_m2(angle))
 
-**`CombatHabModuleController`** extends CombatantController directly (NOT CombatantShipController) — habs are not ships.
+**`CombatHabModuleController`** extends CombatantController directly (NOT CombatantShipController) - habs are not ships.
 
 **For BK modding**: BK does not subclass CombatantController. The combat handling happens via vanilla CombatShipController (not in archive but inferred from `ref_shipController` virtual). CombatShipController must be a concrete subclass that ties ShipState + ModelController together.
 
 ### 25.4 SolarSysModelController and FleetVisController
 
-**`SolarSysModelController`** (45 lines, MonoBehaviour) — base for all strategy-layer scene models:
+**`SolarSysModelController`** (45 lines, MonoBehaviour) - base for all strategy-layer scene models:
 - `container` (SpaceObjectController, get/protected set)
-- `SetShadowBehavior()` — protected method; star/lagrange = no receive, others = receive shadows
-- `InitializeModel(container)` — virtual; sets layer to "Solar System" on all children, initializes RotateCloudsSolarSystemScene component if present, calls SetShadowBehavior
+- `SetShadowBehavior()` - protected method; star/lagrange = no receive, others = receive shadows
+- `InitializeModel(container)` - virtual; sets layer to "Solar System" on all children, initializes RotateCloudsSolarSystemScene component if present, calls SetShadowBehavior
 
 **`FleetVisController : SolarSysModelController`** (97 lines):
 
-This is the strategic-layer fleet container. NOT for combat — ships in combat use ShipVisController via different code path.
+This is the strategic-layer fleet container. NOT for combat - ships in combat use ShipVisController via different code path.
 
 Public properties:
 - `fleetState` (TISpaceFleetState, get/private set)
 - `shipStratControllerObjects` (List<GameObject>, get/private set)
 
 Serialized field:
-- `shipPrefab` (GameObject) — base ship prefab for strategic-layer rendering
+- `shipPrefab` (GameObject) - base ship prefab for strategic-layer rendering
 
 `InitializeModel(container)` flow:
 1. Initialize empty `shipStratControllerObjects`
-2. Call base.InitializeModel(container) — sets layer + shadow behavior
+2. Call base.InitializeModel(container) - sets layer + shadow behavior
 3. Set name to `<container.name> Container`
 4. Cast `container.spaceObjectState` to `TISpaceFleetState`
 5. **For each ship in fleet**:
@@ -3955,7 +3959,7 @@ Serialized field:
 
 `InitializeForUIAppearanceOnly(fleet)`:
 - Walks all child ShipVisControllers
-- Calls `SetAsUIVisualization(matchingShip, copiedFleet=true)` — for fleet preview UI
+- Calls `SetAsUIVisualization(matchingShip, copiedFleet=true)` - for fleet preview UI
 
 `OnFleetDisbanded(e)`:
 - Removes listener
@@ -3965,7 +3969,7 @@ Serialized field:
 `OnDisable()`: stops thruster audio for all child ships (prevents audio leak)
 `OnEnable()`: SetDirty for all child strategy controllers
 
-**Implication for BK**: BK doesn't touch FleetVisController. Strategic-layer rendering of BK ships goes through this path automatically — TISpaceFleetState contains TISpaceShipState entries, FleetVisController spawns StrategyShipControllers per ship, each StrategyShipController internally creates its own ShipVisController which loads the prefab via `assetLoader.InstantiatePrefab(...)`.
+**Implication for BK**: BK doesn't touch FleetVisController. Strategic-layer rendering of BK ships goes through this path automatically - TISpaceFleetState contains TISpaceShipState entries, FleetVisController spawns StrategyShipControllers per ship, each StrategyShipController internally creates its own ShipVisController which loads the prefab via `assetLoader.InstantiatePrefab(...)`.
 
 ### 25.5 Hull-controller switch bodies
 
@@ -4016,7 +4020,7 @@ public override int SlotToWeaponMountIndex(int slot, Mount mount)
 **Slot semantics for LancerController**:
 - Slots 7-11: nose weapons (mostly), slot 7 is special-cased for half-mount Aliens
 - Slot 14, 18: hull weapons
-- All other slots: return 0 (default — first nose mount index)
+- All other slots: return 0 (default - first nose mount index)
 
 #### TitanController (Titan uses this)
 
@@ -4082,7 +4086,7 @@ public override int SlotToWeaponMountIndex(int slot, Mount mount)
 
 **Slot semantics for DreadnoughtController**:
 - Slots 7-9: nose weapons (3 positions, ThreeNoseAngle collapses to 0)
-- Slots 16-23: hull weapons (8 distinct positions — most of any controller)
+- Slots 16-23: hull weapons (8 distinct positions - most of any controller)
 
 #### BattlecruiserController (Battlecruiser uses this)
 
@@ -4125,7 +4129,7 @@ public override int SlotToWeaponMountIndex(int slot, Mount mount)
 - Slots 8-9: nose paired/grouped weapons
 - Slot 11, 14: hull weapons
 
-### 25.6 Cross-controller analysis — slot index ranges
+### 25.6 Cross-controller analysis - slot index ranges
 
 | Controller | Slot indices used | Hull weapon slot range | Comment |
 |---|---|---|---|
@@ -4135,9 +4139,9 @@ public override int SlotToWeaponMountIndex(int slot, Mount mount)
 | DreadnoughtController | 7, 8, 9, 16-23 | 16, 17, 18-23 | 8 hull weapons (largest) |
 
 **Note for §23 hull editing**:
-- Slots 0-6 are **never** mapped in any controller's switch — these are always defaults (utility/drive/power/etc., not weapons)
+- Slots 0-6 are **never** mapped in any controller's switch - these are always defaults (utility/drive/power/etc., not weapons)
 - Slot 7 is always nose weapons across all controllers
-- Hull weapon slot ranges differ — modifying slot indices in TIShipHullTemplate.json must respect each controller's expected ranges
+- Hull weapon slot ranges differ - modifying slot indices in TIShipHullTemplate.json must respect each controller's expected ranges
 
 This confirms §23.6's safety rule: append-to-end is the only safe edit, and "end" specifically means past the highest-indexed slot in any controller's switch (slot 23 for DreadnoughtController).
 
@@ -4166,19 +4170,19 @@ public abstract class TIShipModuleTemplate : TIShipPartTemplate
 ```
 
 **Findings**:
-- TIShipModuleTemplate is a TINY base class — only 18 lines, one field, two override methods
+- TIShipModuleTemplate is a TINY base class - only 18 lines, one field, two override methods
 - `mass_tons` is the ONLY direct JSON field on this base
-- `buildMass_tons` is constant (returns `mass_tons` regardless of inputs) — **utility modules don't scale with anything**
+- `buildMass_tons` is constant (returns `mass_tons` regardless of inputs) - **utility modules don't scale with anything**
 - `buildCost` derives from mass × `spaceResourceToTons` via weightedBuildMaterials
 
 **Subclass hierarchy** (inferred from references):
 - `TIShipModuleTemplate` (this base)
-  - `TIDriveTemplate` (drives — has its own thrustPower_GW, nozzle, etc.)
-  - `TIPowerPlantTemplate` (not yet in archive — referenced via `powerPlantTemplate`)
-  - `TIRadiatorTemplate` (not yet in archive — referenced via `radiatorTemplate`)
+  - `TIDriveTemplate` (drives - has its own thrustPower_GW, nozzle, etc.)
+  - `TIPowerPlantTemplate` (not yet in archive - referenced via `powerPlantTemplate`)
+  - `TIRadiatorTemplate` (not yet in archive - referenced via `radiatorTemplate`)
   - Utility module subclasses (not yet in archive)
 
-**For modding**: utility modules don't have visualization (per §23.7) AND don't have variable mass (this section). They're purely numeric — JSON-only with constant mass and cost.
+**For modding**: utility modules don't have visualization (per §23.7) AND don't have variable mass (this section). They're purely numeric - JSON-only with constant mass and cost.
 
 ### 25.8 Cross-references
 

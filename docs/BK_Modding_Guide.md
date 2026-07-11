@@ -1,4 +1,4 @@
-# BetterKinetics — Hull Modder's Guide
+# BetterKinetics - Hull Modder's Guide
 
 **Game:** Terra Invicta v1.0.32 · **Unity:** 2020.3.49f1
 
@@ -6,54 +6,54 @@ How to add or modify ship hulls that work with BetterKinetics.
 
 ---
 
-## 1 — Four ways to modify a hull
+## 1 - Four ways to modify a hull
 
 | Use case | What you get | Unity work | Bundle |
 |---|---|---|---|
-| **A — Vanilla-asset alias** | A new dataName that reuses an existing vanilla hull's appearance and drives, with your own stats and slot map | none | none |
-| **B — Slot remap only** | Change which physical mount handles which JSON slot on an existing hull (vanilla or custom), without rebuilding anything | none | none |
-| **C — Hybrid hull** | A hull with custom geometry, using vanilla drive variants (DeLaval / Magnetic / Pulse + thruster counts) | full | yes |
-| **D — FullCustom hull** | A hull with custom geometry **and** a custom drive prefab | full | yes |
+| **A - Vanilla-asset alias** | A new dataName that reuses an existing vanilla hull's appearance and drives, with your own stats and slot map | none | none |
+| **B - Slot remap only** | Change which physical mount handles which JSON slot on an existing hull (vanilla or custom), without rebuilding anything | none | none |
+| **C - Hybrid hull** | A hull with custom geometry, using vanilla drive variants (DeLaval / Magnetic / Pulse + thruster counts) | full | yes |
+| **D - FullCustom hull** | A hull with custom geometry **and** a custom drive prefab | full | yes |
 
-A and B are config-only. C and D require the Unity pipeline (§3–§4).
+A and B are config-only. C and D require the Unity pipeline (§3-§4).
 
 Your mod folder is a sibling of `ExpandedFleetsAndNavies/` under `Mods/Enabled/`. BK scans every sibling folder at startup; you don't touch BK's own folder. First-wins on `dataName` collision across mods.
 
 ---
 
-## 2 — Prerequisites
+## 2 - Prerequisites
 
-### 2.1 — Always required
+### 2.1 - Always required
 
-- A `ExpandedFleetsAndNavies` mod folder under `…/Terra Invicta/Mods/Enabled/` containing `BetterKinetics.dll`.
+- A `ExpandedFleetsAndNavies` mod folder under `.../Terra Invicta/Mods/Enabled/` containing `BetterKinetics.dll`.
 - UnityModManager installed and active.
 - Your own mod folder (any name) as a sibling of `ExpandedFleetsAndNavies/`.
 
-### 2.2 — Additional for use cases C and D
+### 2.2 - Additional for use cases C and D
 
-- Unity 2020.3.49f1 — exact version. Anything else gives wrong scale and shader issues.
+- Unity 2020.3.49f1 - exact version. Anything else gives wrong scale and shader issues.
 - AssetRipper 1.3.12+
 - BK's `ShipTools.cs` editor script.
 
-### 2.3 — Paths
+### 2.3 - Paths
 
 | Item | Path |
 |---|---|
-| Game data | `…/Terra Invicta/TerraInvicta_Data` |
-| BK mod folder | `…/Terra Invicta/Mods/Enabled/ExpandedFleetsAndNavies/` |
-| Unity working project | `~/Desktop/Ships/TI_Ships_Extracted/ExportedProject/` |
-| Recovery copy (do not modify) | `~/Desktop/Ships/TI_Recovery/ExportedProject/` |
-| Bundle output | `~/Desktop/BundleOut/` |
+| Game data | `.../Terra Invicta/TerraInvicta_Data` |
+| BK mod folder | `.../Terra Invicta/Mods/Enabled/ExpandedFleetsAndNavies/` |
+| Unity working project | `<unity-work>/TI_Ships_Extracted/ExportedProject/` |
+| Recovery copy (do not modify) | `<unity-work>/TI_Recovery/ExportedProject/` |
+| Bundle output | `<bundle-out>/` |
 
 `ShipTools.cs` hardcodes `BundleOutPath` and `DeployPath`. Edit those constants if your paths differ.
 
 ---
 
-## 3 — One-time Unity setup (use cases C and D)
+## 3 - One-time Unity setup (use cases C and D)
 
 Run this once per workstation. After this, every new hull goes straight to §6.
 
-### 3.1 — Extract the game with AssetRipper
+### 3.1 - Extract the game with AssetRipper
 
 Launch AssetRipper. Set:
 
@@ -68,11 +68,11 @@ Launch AssetRipper. Set:
 | Skip StreamingAssets Folder | Unchecked |
 | Save Settings to Disk | Checked |
 
-**File → Open Folder** → `TerraInvicta_Data`. Wait for "Finished processing assets". **Export → Export All Files** → `~/Desktop/Ships/TI_Ships_Extracted`.
+**File → Open Folder** → `TerraInvicta_Data`. Wait for "Finished processing assets". **Export → Export All Files** → `<unity-work>/TI_Ships_Extracted`.
 
-Relaunch AssetRipper and export a second identical copy to `~/Desktop/Ships/TI_Recovery`. The recovery copy is your safety net — never modify it.
+Relaunch AssetRipper and export a second identical copy to `<unity-work>/TI_Recovery`. The recovery copy is your safety net - never modify it.
 
-### 3.2 — Fix decompiler artifacts
+### 3.2 - Fix decompiler artifacts
 
 ```fish
 python3 fix_decompiler_errors.py
@@ -80,34 +80,34 @@ python3 fix_decompiler_errors.py
 
 Patches decompiler-produced syntax errors so Unity will accept the project. Without this, Unity opens in Safe Mode.
 
-### 3.3 — Install ShipTools
+### 3.3 - Install ShipTools
 
 ```fish
-mkdir -p ~/Desktop/Ships/TI_Ships_Extracted/ExportedProject/Assets/Editor
-cp ~/Desktop/Source/ShipTools.cs ~/Desktop/Ships/TI_Ships_Extracted/ExportedProject/Assets/Editor/
+mkdir -p <unity-work>/TI_Ships_Extracted/ExportedProject/Assets/Editor
+cp <repo>/src/ShipTools.cs <unity-work>/TI_Ships_Extracted/ExportedProject/Assets/Editor/
 ```
 
-### 3.4 — First Unity launch
+### 3.4 - First Unity launch
 
 ```fish
-unity -projectPath ~/Desktop/Ships/TI_Ships_Extracted/ExportedProject
+unity -projectPath <unity-work>/TI_Ships_Extracted/ExportedProject
 ```
 
-First open: 30–60 minutes. If "Enter Safe Mode?" appears, click **Ignore**, then re-run §3.2.
+First open: 30-60 minutes. If "Enter Safe Mode?" appears, click **Ignore**, then re-run §3.2.
 
-### 3.5 — Project prep (run once, in order)
+### 3.5 - Project prep (run once, in order)
 
-1. **Ship Tools → Setup → 1. Strip Vanilla Bundle Tags** — removes inherited bundle tags from vanilla assets. Without this, builds take 40+ minutes and produce 500MB+ bundles.
-2. **Ship Tools → Setup → 2. Disable Streaming on All Textures** — avoids texture-streaming runtime null refs.
-3. **Ship Tools → Setup → 3. Reimport Hull Textures as DXT** — DXT compression required for cross-platform asset bundles.
+1. **Ship Tools → Setup → 1. Strip Vanilla Bundle Tags** - removes inherited bundle tags from vanilla assets. Without this, builds take 40+ minutes and produce 500MB+ bundles.
+2. **Ship Tools → Setup → 2. Disable Streaming on All Textures** - avoids texture-streaming runtime null refs.
+3. **Ship Tools → Setup → 3. Reimport Hull Textures as DXT** - DXT compression required for cross-platform asset bundles.
 
 ---
 
-## 4 — Use case A: Vanilla-asset alias
+## 4 - Use case A: Vanilla-asset alias
 
 Use this when you want a new dataName (e.g. `HeavyCruiser`) that visually reuses an existing vanilla hull (e.g. Dreadnought) but has different stats, model resource, or slot map.
 
-### 4.1 — Add to `TIShipHullTemplate.json`
+### 4.1 - Add to `TIShipHullTemplate.json`
 
 In your mod folder, create or extend `TIShipHullTemplate.json`. Point `modelResource` at the vanilla bundle that holds the actual geometry:
 
@@ -118,7 +118,7 @@ In your mod folder, create or extend `TIShipHullTemplate.json`. Point `modelReso
 }
 ```
 
-### 4.2 — Add to `HullDefinitions.cfg`
+### 4.2 - Add to `HullDefinitions.cfg`
 
 Tell BK which vanilla hull's drive assets to use:
 
@@ -135,17 +135,17 @@ BK substitutes `Earth_HeavyCruiser_<variant>` paths to `Earth_Dreadnought_<varia
 
 > Each cfg entry must declare at least one of `bundleName`, `drivePrefab`, or `vanillaDriveDataName`. Entries with none are rejected.
 
-### 4.3 — Optional: slot remapping
+### 4.3 - Optional: slot remapping
 
 If your new dataName needs different mount-slot routing on its shared controller, add an entry to `ControllerDefinitions.cfg` (§10).
 
 ---
 
-## 5 — Use case B: Slot remap only
+## 5 - Use case B: Slot remap only
 
 Use this when you want to change which physical mount handles which JSON slot index on an existing hull (vanilla or your own) without touching the hull mesh, bundle, or DLL.
 
-### 5.1 — Add to `ControllerDefinitions.cfg`
+### 5.1 - Add to `ControllerDefinitions.cfg`
 
 ```json
 [
@@ -164,7 +164,7 @@ Each entry maps `slot` (the slot index in the hull's JSON `shipModuleSlots`) to 
 
 Slot maps are per controller class. Multiple dataNames sharing one controller (e.g. Dreadnought + HeavyCruiser both using `DreadnoughtController`) all inherit the same map; per-dataName JSON `shipModuleSlots` then picks which subset of slots is active.
 
-### 5.2 — That's it
+### 5.2 - That's it
 
 No bundle, no Unity, no DLL rebuild. Drop the file in your mod folder, restart the game.
 
@@ -172,18 +172,18 @@ For per-mount overrides (route the same slot to different array indices dependin
 
 ---
 
-## 6 — Use case C: Hybrid hull (custom mesh, vanilla drives)
+## 6 - Use case C: Hybrid hull (custom mesh, vanilla drives)
 
 The most common custom-hull case. Custom geometry, vanilla drive variants for free.
 
-### 6.1 — Create the hull
+### 6.1 - Create the hull
 
 1. In Unity Project panel, select a vanilla prefab as your starting skeleton (e.g. `Assets/GameObject/Battlecruiser.prefab`).
 2. **Ship Tools → Hull → 1. Create Hull From Vanilla**.
 3. Fill the dialog:
-   - **Hull Name** — the new prefab's name (e.g. `MyScoutCruiser`). Becomes both the asset filename and (lowercased) the bundle tag.
-   - **Drive Mesh Prefix** — which vanilla hull's drive meshes to use. Auto-mirrors **Hull Name** until you edit it. Override when your prefab name differs from the vanilla source you want drives from.
-   - **Faction Skin** — which faction's bundle-baked materials to apply (default `resist`).
+   - **Hull Name** - the new prefab's name (e.g. `MyScoutCruiser`). Becomes both the asset filename and (lowercased) the bundle tag.
+   - **Drive Mesh Prefix** - which vanilla hull's drive meshes to use. Auto-mirrors **Hull Name** until you edit it. Override when your prefab name differs from the vanilla source you want drives from.
+   - **Faction Skin** - which faction's bundle-baked materials to apply (default `resist`).
 4. Click Create.
 
 What the tool does:
@@ -195,19 +195,19 @@ What the tool does:
 - Writes `<HullName>.faction` and `<HullName>.driveprefix` sidecars.
 - Bakes faction materials onto every `MeshRenderer` whose name has a matching `Assets/Material/MAT_<childName>_<faction>.mat`.
 
-### 6.2 — Naming rules
+### 6.2 - Naming rules
 
 **Do not rename:**
 - Root (the name you entered)
 - `Hull`
-- Hull mesh children inside `Hull` (`Earth_<hullname>_Crew`, etc. — material paths depend on these names)
+- Hull mesh children inside `Hull` (`Earth_<hullname>_Crew`, etc. - material paths depend on these names)
 - `Drive`, `_ExplosionSequenceRoot`, `SelectionReticle`, `GroupSelectionReticle`, `Padlock Container`
 - All 17 radiator names (§12)
 
 **Rename freely:**
 - Weapon mounts (matched by case-insensitive `Contains("dorsal" / "ventral" / "nose")`)
 
-### 6.3 — Add weapon mounts (if needed)
+### 6.3 - Add weapon mounts (if needed)
 
 1. Select existing mount(s) in Hierarchy (Ctrl+click for multiple).
 2. **Ship Tools → Hull → 2. Add Weapon Mount**.
@@ -218,7 +218,7 @@ What the tool does:
 4. Press W and reposition each new mount in scene view.
 5. Drag in Hierarchy to set firing order (controller-array index follows hierarchy order).
 
-**Mount structure** — exactly three levels:
+**Mount structure** - exactly three levels:
 ```
 <Mount Name>           ← has ShipWeaponVisController component
   └── <Mount Name> Gun ← visual model (mesh + renderer)
@@ -229,15 +229,15 @@ What the tool does:
 
 After adding mounts, declare slot mappings in `ControllerDefinitions.cfg` (§10) so JSON slot indices route to your new mount-array indices.
 
-### 6.4 — Change faction skin later (optional)
+### 6.4 - Change faction skin later (optional)
 
 **Ship Tools → Hull → 3. Set Faction Skin** with the prefab selected. Updates the `.faction` sidecar and re-bakes materials immediately.
 
-### 6.5 — Verify
+### 6.5 - Verify
 
 **Ship Tools → Verify Hull** with the hull root selected. Reports errors, warnings, and current weapon-mount array indices (you'll need those for `ControllerDefinitions.cfg`). Fix every error before proceeding. Warnings are advisory.
 
-### 6.6 — Finalize and ship
+### 6.6 - Finalize and ship
 
 **Ship Tools → Finalize and Ship**. Single click, six stages:
 
@@ -250,11 +250,11 @@ After adding mounts, declare slot mappings in `ControllerDefinitions.cfg` (§10)
 
 A single Done dialog summarizes per-stage counts. If you cancel during stage 4, no build/deploy happens and you get a summary of what completed.
 
-### 6.7 — Configure JSON + cfg
+### 6.7 - Configure JSON + cfg
 
 In your mod folder:
 
-**`TIShipHullTemplate.json`** — point `modelResource` at the bundle:
+**`TIShipHullTemplate.json`** - point `modelResource` at the bundle:
 ```json
 {
   "dataName": "MyScoutCruiser",
@@ -262,7 +262,7 @@ In your mod folder:
 }
 ```
 
-**`HullDefinitions.cfg`** — register as Hybrid:
+**`HullDefinitions.cfg`** - register as Hybrid:
 ```json
 [
   {
@@ -281,13 +281,13 @@ If your dataName doesn't match a vanilla hull, add `vanillaDriveDataName` so dri
 }
 ```
 
-**`ControllerDefinitions.cfg`** — slot mappings if you added mounts (§10).
+**`ControllerDefinitions.cfg`** - slot mappings if you added mounts (§10).
 
 ---
 
-## 7 — Use case D: FullCustom hull (custom mesh + custom drive)
+## 7 - Use case D: FullCustom hull (custom mesh + custom drive)
 
-Same Unity pipeline as §6, with one cfg difference — declare a `drivePrefab`:
+Same Unity pipeline as §6, with one cfg difference - declare a `drivePrefab`:
 
 ```json
 [
@@ -303,13 +303,13 @@ What changes vs Hybrid:
 - `DriveVisualPatch` replaces the entire vanilla drive path with `<bundleName>/<drivePrefab>`. Your bundle owns the drive geometry.
 - Drive material rendering across bundles is fragile: BK bundles built with Standard stripped from Always Included Shaders carry their own shader copies, while vanilla materials reference the global shader pool. Drives may render flat white if shader instances don't match.
 
-> Verify drives render correctly in-game before committing. If they appear flat white, drop the `drivePrefab` field — that switches you to Hybrid mode using vanilla drive variants.
+> Verify drives render correctly in-game before committing. If they appear flat white, drop the `drivePrefab` field - that switches you to Hybrid mode using vanilla drive variants.
 
 The `<HullName>_Drive.prefab` that **Create Hull From Vanilla** generates is the starting point for your custom drive. Edit it like any other prefab; it's already tagged for the same bundle.
 
 ---
 
-## 8 — `HullDefinitions.cfg` schema
+## 8 - `HullDefinitions.cfg` schema
 
 JSON array of objects. Each object describes one hull dataName.
 
@@ -324,13 +324,13 @@ JSON array of objects. Each object describes one hull dataName.
 
 | `bundleName` | `drivePrefab` | `vanillaDriveDataName` | Mode | Status |
 |---|---|---|---|---|
-| absent | absent | absent | — | **Rejected** (entry would do nothing) |
+| absent | absent | absent | - | **Rejected** (entry would do nothing) |
 | absent | absent | set | PatchOnly | ✓ |
 | set | absent | optional | Hybrid | ✓ |
 | set | set | (ignored) | FullCustom | ⚠ verify drive material rendering |
-| absent | set | any | — | **Rejected** (drive must live in a bundle) |
+| absent | set | any | - | **Rejected** (drive must live in a bundle) |
 
-### Example — three hulls, three modes
+### Example - three hulls, three modes
 
 ```json
 [
@@ -352,7 +352,7 @@ JSON array of objects. Each object describes one hull dataName.
 
 ---
 
-## 9 — `TIShipHullTemplate.json` — `modelResource` conventions
+## 9 - `TIShipHullTemplate.json` - `modelResource` conventions
 
 `modelResource` is the vanilla TI field BK reads to locate the hull prefab. The path format is `<bundle>/<prefab>` and BK respects whatever you put in it.
 
@@ -361,11 +361,11 @@ JSON array of objects. Each object describes one hull dataName.
 | Vanilla-asset alias (use case A) | `["ships/<vanillaHull>", "ships/<vanillaHull>"]` |
 | Hybrid / FullCustom (use cases C and D) | `["<yourbundle>/<YourHull>", "<yourbundle>/<YourHull>"]` |
 
-Two entries in the array are appearance index 0 and 1 (default and ALT skins). Provide both even if identical — vanilla TI sometimes queries index 1.
+Two entries in the array are appearance index 0 and 1 (default and ALT skins). Provide both even if identical - vanilla TI sometimes queries index 1.
 
 ---
 
-## 10 — `ControllerDefinitions.cfg` schema
+## 10 - `ControllerDefinitions.cfg` schema
 
 JSON array. Each object describes slot remapping for one `ShipModelController` subclass. Used standalone (use case B) or as a configuration step within use cases C / D.
 
@@ -384,13 +384,13 @@ Each `weaponSlotMap` entry:
 |---|---|---|---|
 | `slot` | int | yes | JSON slot index from `shipModuleSlots` |
 | `index` | int | yes | Default array index in the matching weapon-controllers array |
-| `overrides` | array | optional | Per-mount overrides — see below |
+| `overrides` | array | optional | Per-mount overrides - see below |
 
 Each override:
 
 | Field | Type | Required | Effect |
 |---|---|---|---|
-| `mounts` | string array | yes | One or more `Mount` enum names (`Nose`, `Dorsal`, `Ventral`, …) |
+| `mounts` | string array | yes | One or more `Mount` enum names (`Nose`, `Dorsal`, `Ventral`, ...) |
 | `index` | int | yes | Array index to use when one of these mounts is equipped |
 
 ### Resolution at runtime
@@ -424,9 +424,9 @@ Each override:
 
 ---
 
-## 11 — Sidecar files
+## 11 - Sidecar files
 
-Sidecar files persist per-prefab editor state next to the `.prefab` asset. They are **editor-only** — never shipped in a bundle.
+Sidecar files persist per-prefab editor state next to the `.prefab` asset. They are **editor-only** - never shipped in a bundle.
 
 ### `<HullName>.faction`
 
@@ -436,7 +436,7 @@ Plain-text file, contents = one of `appease`, `cooperate`, `destroy`, `escape`, 
 
 Plain-text file, contents = vanilla hull name whose drive meshes to use (e.g. `Titan`). Read at variant-bake time to look up `Earth_<prefix>_<variant>` meshes. Written by `Create Hull From Vanilla` (auto-mirrors Hull Name unless overridden) or the in-flow prompt during `Finalize and Ship`.
 
-### Recovery — missing sidecar during Finalize and Ship
+### Recovery - missing sidecar during Finalize and Ship
 
 Both stages handle missing sidecars in-flow rather than hard-stopping:
 
@@ -447,11 +447,11 @@ Skipping a hull leaves it un-baked but doesn't break the pipeline. Cancelling ha
 
 ### Manual recovery
 
-Create the sidecar by hand if you'd rather not use the prompt. Plain text — literally the file `MyHull.driveprefix` next to `MyHull.prefab`, contents `Battlecruiser`.
+Create the sidecar by hand if you'd rather not use the prompt. Plain text - literally the file `MyHull.driveprefix` next to `MyHull.prefab`, contents `Battlecruiser`.
 
 ---
 
-## 12 — Required hull hierarchy
+## 12 - Required hull hierarchy
 
 ### Direct children of root (all required)
 
@@ -464,7 +464,7 @@ Create the sidecar by hand if you'd rather not use the prompt. Plain text — li
 | `GroupSelectionReticle` | 0 | Multi-select indicator |
 | `Padlock Container` | 0 | Camera lock target |
 
-### Radiators (17 total — names are exact)
+### Radiators (17 total - names are exact)
 
 **Fin (10):** `Radiator12`, `Radiator3`, `Radiator130`, `Radiator6`, `Radiator4`, `Radiator430`, `Radiator730`, `Radiator1030`, `Radiator8`, `Radiator9`
 
@@ -491,16 +491,16 @@ Create the sidecar by hand if you'd rather not use the prompt. Plain text — li
 
 ---
 
-## 13 — In-game verification
+## 13 - In-game verification
 
 After deploy, launch the game and watch `Player.log`:
 
 ```fish
-cp "…/compatdata/1176470/pfx/drive_c/users/steamuser/AppData/LocalLow/Pavonis Interactive/TerraInvicta/Player.log" \
-   ~/Desktop/Player.log
+cp "<SteamLibrary>/steamapps/compatdata/1176470/pfx/drive_c/users/steamuser/AppData/LocalLow/Pavonis Interactive/TerraInvicta/Player.log" \
+   Player.log
 ```
 
-### 13.1 — Expected boot lines
+### 13.1 - Expected boot lines
 
 ```
 [ExpandedFleetsAndNavies] HullRegistry: parsed <dataName> from <mod> ...
@@ -512,11 +512,11 @@ cp "…/compatdata/1176470/pfx/drive_c/users/steamuser/AppData/LocalLow/Pavonis 
 
 No "Load failed". No `HarmonyException`. No "Not loaded" line.
 
-### 13.2 — Per-hull runtime lines
+### 13.2 - Per-hull runtime lines
 
 When a Hybrid or FullCustom hull spawns:
 ```
-[ExpandedFleetsAndNavies] SetSkinSkipPatch: <dataName> (Hybrid) — skipping vanilla SetSkin.
+[ExpandedFleetsAndNavies] SetSkinSkipPatch: <dataName> (Hybrid) - skipping vanilla SetSkin.
 [ExpandedFleetsAndNavies] DriveVariantPatch: activated 'DeLavalx5' on <HullName>
 ```
 
@@ -532,7 +532,7 @@ When a FullCustom hull spawns:
 
 If `DriveVariantPatch` warns `no baked variant 'DeLavalx<N>' on <HullName>`, that combo wasn't baked because either the mesh or the material was missing in the project. Add the missing asset and re-run **Finalize and Ship**.
 
-### 13.3 — In-game checklist
+### 13.3 - In-game checklist
 
 - Ship is textured (not white).
 - Scale matches surrounding ships.
@@ -545,7 +545,7 @@ If `DriveVariantPatch` warns `no baked variant 'DeLavalx<N>' on <HullName>`, tha
 
 ---
 
-## 14 — Troubleshooting
+## 14 - Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
@@ -566,7 +566,7 @@ If `DriveVariantPatch` warns `no baked variant 'DeLavalx<N>' on <HullName>`, tha
 
 ---
 
-## 15 — Mod folder layout
+## 15 - Mod folder layout
 
 A complete BK-extending mod folder contains:
 
@@ -588,17 +588,17 @@ For your mod to extend BK without modifying it:
 
 ---
 
-## 16 — Quick reference card
+## 16 - Quick reference card
 
 ```
-Use case A — Vanilla-asset alias       │ HullDefinitions.cfg (vanillaDriveDataName)
+Use case A - Vanilla-asset alias       │ HullDefinitions.cfg (vanillaDriveDataName)
                                        │ + TIShipHullTemplate.json
-Use case B — Slot remap only           │ ControllerDefinitions.cfg
-Use case C — Hybrid hull               │ Unity pipeline + bundle
+Use case B - Slot remap only           │ ControllerDefinitions.cfg
+Use case C - Hybrid hull               │ Unity pipeline + bundle
                                        │ + HullDefinitions.cfg (bundleName)
                                        │ + TIShipHullTemplate.json
                                        │ + optional ControllerDefinitions.cfg
-Use case D — FullCustom hull           │ Unity pipeline + bundle
+Use case D - FullCustom hull           │ Unity pipeline + bundle
                                        │ + HullDefinitions.cfg (bundleName + drivePrefab)
                                        │ + TIShipHullTemplate.json
 

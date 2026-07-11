@@ -1,4 +1,4 @@
-# Expanded Fleets and Navies — Technical Reference
+# Expanded Fleets and Navies - Technical Reference
 
 This document covers the extension points Expanded Fleets and Navies provides for other Terra Invicta mods. It assumes you are already familiar with TI mod authoring (UMM, the JSON template files, and Harmony patches).
 
@@ -23,11 +23,11 @@ The `*.json` and `*.en` files outside the two `.cfg` files are vanilla template 
 
 Expanded Fleets and Navies provides three cross-mod extension points:
 
-- `HullDefinitions.cfg` — register a hull (`dataName`) with a custom asset bundle and/or a vanilla-drive alias.
-- `ControllerDefinitions.cfg` — remap weapon slots on a `ShipModelController` subclass.
-- Four custom integer fields on `TIHabModuleTemplate.json` entries — body and faction build limits, mining bonus, mining cap bonus.
+- `HullDefinitions.cfg` - register a hull (`dataName`) with a custom asset bundle and/or a vanilla-drive alias.
+- `ControllerDefinitions.cfg` - remap weapon slots on a `ShipModelController` subclass.
+- Four custom integer fields on `TIHabModuleTemplate.json` entries - body and faction build limits, mining bonus, mining cap bonus.
 
-All three are loaded by scanning every sibling folder under `Mods/Enabled/` at startup. Other mods do not need to modify Expanded Fleets and Navies to participate — drop a file with the right name in your own mod folder.
+All three are loaded by scanning every sibling folder under `Mods/Enabled/` at startup. Other mods do not need to modify Expanded Fleets and Navies to participate - drop a file with the right name in your own mod folder.
 
 ## HullDefinitions.cfg
 
@@ -75,7 +75,7 @@ An entry is rejected with an error if any of:
 
 ### Examples
 
-**FullCustom — new hull with its own bundle and drive prefab:**
+**FullCustom - new hull with its own bundle and drive prefab:**
 
 ```json
 {
@@ -85,7 +85,7 @@ An entry is rejected with an error if any of:
 }
 ```
 
-**Hybrid — new hull mesh, reusing a vanilla drive:**
+**Hybrid - new hull mesh, reusing a vanilla drive:**
 
 ```json
 {
@@ -95,7 +95,7 @@ An entry is rejected with an error if any of:
 }
 ```
 
-**PatchOnly — net-new `dataName` that aliases another hull's drive:**
+**PatchOnly - net-new `dataName` that aliases another hull's drive:**
 
 ```json
 {
@@ -108,7 +108,7 @@ An entry is rejected with an error if any of:
 
 A JSON array file. Each entry remaps weapon slots on one `ShipModelController` subclass via a Harmony prefix on its `SlotToWeaponMountIndex(int slot, Mount mount)` method.
 
-The file is read by `ControllerRegistry.Init` at mod startup, and the patches are attached after `Harmony.PatchAll` via `ControllerRegistry.PatchWeaponMounts`. Every enabled mod folder is scanned for `ControllerDefinitions.cfg` at the folder root. Cross-mod collisions on `controllerClass` are resolved with **first-wins** — only one slot map per controller type is supported.
+The file is read by `ControllerRegistry.Init` at mod startup, and the patches are attached after `Harmony.PatchAll` via `ControllerRegistry.PatchWeaponMounts`. Every enabled mod folder is scanned for `ControllerDefinitions.cfg` at the folder root. Cross-mod collisions on `controllerClass` are resolved with **first-wins** - only one slot map per controller type is supported.
 
 ### Schema
 
@@ -196,20 +196,21 @@ The file is read by `ConfigReader.Init` at mod startup. Every enabled mod folder
 | Field | Type | Default | Purpose |
 |---|---|---|---|
 | `bodyBuildLimit` | integer ≥ 0 | unlimited | Maximum number of this module that can be built on a single planetary body, summed across all factions. |
-| `factionBuildLimit` | integer ≥ 0 | unlimited | Maximum number of this module a single faction can build per body. |
-| `miningBonus` | integer ≥ 0 | 0 | Mining-output boost in percentage points per instance per faction. The integer is divided by 100 at runtime, so `miningBonus: 8` adds `0.08` to the body's mining multiplier. |
-| `miningCapBonus` | integer ≥ 0 | 0 | Additional mining cap units granted by the module. |
+| `factionBuildLimit` | integer ≥ 0 | unlimited | Maximum number of this module a single faction can build on a single planetary body. |
+| `miningBonus` | integer ≥ 0 | 0 | Faction-wide mining-output boost in percentage points per active instance the faction owns, anywhere. The integer is divided by 100 at runtime, so `miningBonus: 8` adds `0.08` to the faction's mining multiplier. |
+| `miningCapBonus` | integer ≥ 0 | 0 | Additional faction mining cap units per active instance the faction owns, anywhere. |
 
 All fields are optional. Absent fields are silently ignored. Wrong types (non-integer) and negative values produce a warning and are ignored.
 
 ### Behavior notes
 
 - Cross-mod merge is **per field**: if mod A sets `bodyBuildLimit` and mod B sets `miningBonus` on the same `dataName`, both apply. If both mods set the same field, the later-loaded mod wins for that field; other fields are not cleared.
-- Build-limit semantics within `BuildLimitPatch`: limits cascade across the upgrade family — a tier-1 limit counts the whole upgrade chain, tier-2 counts T2+T3, tier-3 counts T3 only. The most restrictive applicable limit wins for each tier.
-- Mining bonuses sum across instances of the same module on the same body, and across different bonus-providing modules.
-- Mining cap bonuses sum across instances of the same module on the same body.
+- Build-limit semantics within `BuildLimitPatch`: limits cascade across the upgrade family - a tier-1 limit counts the whole upgrade chain, tier-2 counts T2+T3, tier-3 counts T3 only. The most restrictive applicable limit wins for each tier.
+- Mining bonuses sum across every active instance the faction owns, across all habs and bodies, and across different bonus-providing modules.
+- Mining cap bonuses sum the same way: every active instance the faction owns, anywhere.
+- All four fields display automatically in the hab build tooltip, the installed-module tooltip, and the research screen module preview. No extra work is needed by the defining mod.
 
-### Example — adding a custom mining module
+### Example - adding a custom mining module
 
 ```json
 [
@@ -250,16 +251,16 @@ HullRegistry: scanned N file(s), N hull(s) registered.
 HullRegistry: parsed <dataName> from <sourceMod> (patch-only, drive alias '<X>').
 HullRegistry: parsed <dataName> from <sourceMod>, hybrid bundle '<X>'[, drive alias '<Y>'].
 HullRegistry: parsed <dataName> from <sourceMod>, full-custom bundle '<X>', drive '<Y>'.
-HullRegistry: dataName '<X>' from '<modA>' ignored — already registered by '<modB>' (first-wins).
+HullRegistry: dataName '<X>' from '<modA>' ignored - already registered by '<modB>' (first-wins).
 
 ControllerRegistry: scanned N file(s), parsed N entry(ies).
 ControllerRegistry: parsed <controllerClass> from <sourceMod> (N mappings).
-ControllerRegistry: weaponSlotMap for '<controllerClass>' from '<modA>' ignored — already registered by '<modB>' (first-wins).
+ControllerRegistry: weaponSlotMap for '<controllerClass>' from '<modA>' ignored - already registered by '<modB>' (first-wins).
 ControllerRegistry: patched N controller(s) for weapon slot remapping.
 
 ConfigReader: scanned N file(s), loaded N module config(s).
-ConfigReader: '<field>' on '<dataName>' is <type>, expected Integer — ignored.
-ConfigReader: '<field>' on '<dataName>' is negative (<n>) — ignored.
+ConfigReader: '<field>' on '<dataName>' is <type>, expected Integer - ignored.
+ConfigReader: '<field>' on '<dataName>' is negative (<n>) - ignored.
 ```
 
 ## Compatibility
@@ -277,10 +278,11 @@ Expanded Fleets and Navies applies Harmony patches to the following vanilla meth
 | Patch | Target | Type | Purpose |
 |---|---|---|---|
 | `BuildLimitPatch` | `TIHabState.IsModuleAllowedForHab` | Postfix | Enforces `bodyBuildLimit` and `factionBuildLimit` from `TIHabModuleTemplate.json`, with tier-cascade semantics across upgrade families. |
-| `MiningBonusPatch` | `TIFactionState.GetCurrentMiningMultiplierFromOrgsAndEffects` | Postfix | Adds `miningBonus / 100` per instance of any bonus-providing module on the body. |
-| `MiningCapBonusPatch` | `TIFactionState.SafeMineNextworkSize` | Postfix | Adds `miningCapBonus` per instance. (The vanilla method's misspelling — `Nextwork` — is preserved by `nameof()`.) |
+| `MiningBonusPatch` | `TIFactionState.GetCurrentMiningMultiplierFromOrgsAndEffects` | Postfix | Adds `miningBonus / 100` per active instance of any bonus-providing module the faction owns. Faction-wide. |
+| `MiningCapBonusPatch` | `TIFactionState.SafeMineNextworkSize` | Postfix | Adds `miningCapBonus` per instance. (The vanilla method's misspelling - `Nextwork` - is preserved by `nameof()`.) |
+| `HabDescriptionPatch` | `TIHabModuleTemplate.benefitsAndCostsDescription` | Postfix | Displays the custom fields in hab tooltips and the research screen module preview. Also splices flat material incomes into the research screen line for Station modules, which vanilla omits without a hab context. |
 | `DriveVisualPatch` | `TIDriveTemplate.modelResource(hull, appearanceIndex)` | Postfix | Rewrites the drive asset path for hulls registered in `HullDefinitions.cfg`. PatchOnly and Hybrid hulls with `vanillaDriveDataName` get the alias substituted; FullCustom hulls get `<bundleName>/<drivePrefab>`. |
 | `DriveVariantPatch` | `ShipModelController.BuildDrives` | Postfix | Activates the matching baked drive-variant child on the prefab for the equipped drive. |
-| `SetSkinSkipPatch` | `HumanShipController.SetSkin` | Prefix | Returns `false` (skips vanilla) for Hybrid and FullCustom hulls — vanilla SetSkin would overwrite the edit-time-baked materials with cross-bundle paths that don't resolve. PatchOnly hulls fall through to vanilla. |
+| `SetSkinSkipPatch` | `HumanShipController.SetSkin` | Prefix | Returns `false` (skips vanilla) for Hybrid and FullCustom hulls - vanilla SetSkin would overwrite the edit-time-baked materials with cross-bundle paths that don't resolve. PatchOnly hulls fall through to vanilla. |
 | `CombatScalePatch` | `ShipVisController.InitializeShipVisualizer` | Postfix | Normalizes each ship's rendered length to its hull template's `length_m` at visualizer creation, keeping on-screen sizing consistent and proportional across combat and strategic views. |
 | `WeaponMountPatch.DynamicPrefix` | `<ControllerClass>.SlotToWeaponMountIndex` per registered controller | Prefix | Applied dynamically by `ControllerRegistry.PatchWeaponMounts` to each controller class registered in `ControllerDefinitions.cfg`. Returns the mapped `index` (or override `index`) for matching slots and skips vanilla; falls through for unmapped slots. |
